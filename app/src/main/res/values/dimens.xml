@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="music_title">20dp</dimen>
+    <dimen name="music_artist">13dp</dimen>
+    <dimen name="music_image_width">100dp</dimen>
+    <dimen name="music_image_height">100dp</dimen>
+</resources>
