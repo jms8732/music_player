@@ -8,6 +8,18 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/status_show"
+            android:layout_centerInParent="true"
+            android:textSize="25dp"
+            android:text="No mp3 Files"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         tools:ignore="MissingConstraints">
 
@@ -16,6 +28,8 @@
             android:layout_height="wrap_content"
             android:id="@+id/recycle_view"
         />
+    </RelativeLayout>
+
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
