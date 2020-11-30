@@ -2,11 +2,13 @@ package com.example.myapplication;
 
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.icu.text.DecimalFormat;
 import android.icu.text.NumberFormat;
 import android.net.Uri;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,6 +30,7 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private Context context;
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
+    private OnSelectedItemListener itemListener;
 
     public MusicRecyclerAdapter(Context context, RecyclerView recyclerView) {
         this.context = context;
@@ -41,6 +44,10 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public int getItemViewType(int position) {
         return list.get(position) != null ? TYPE_MUSIC : TYPE_LAST;
+    }
+
+    public void setItemListener(OnSelectedItemListener listener){
+        this.itemListener = listener;
     }
 
     @NonNull
@@ -87,6 +94,18 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         if (list.get(position) == null) {
             //마지막인 경우
             recyclerView.getLayoutManager().scrollToPosition(0);
+        }else{
+           String title = list.get(position).getTitle();
+           String artist = list.get(position).getArtist();
+           this.itemListener.ChangeLayout(title,artist, position);
+
+            Intent intent = new Intent(context,MusicService.class);
+            intent.putExtra("data",list.get(position));
+
+           if(Build.VERSION_CODES.O <= Build.VERSION.SDK_INT){
+               context.startForegroundService(intent);
+           }else
+               context.startService(intent);
         }
     }
 

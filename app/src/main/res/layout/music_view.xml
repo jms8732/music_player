@@ -17,8 +17,8 @@
 
             <ImageView
                 android:id="@+id/image"
-                android:layout_width="@dimen/music_image_width"
-                android:layout_height="@dimen/music_image_height"
+                android:layout_width="@dimen/music_thumnail_width"
+                android:layout_height="@dimen/music_thumnail_height"
                 android:layout_marginRight="15dp"
                 android:layout_marginLeft="15dp"
                 android:layout_centerVertical="true"
@@ -31,6 +31,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="25dp"
                 android:layout_toRightOf="@+id/image"
+                android:ems="12"
+                android:ellipsize="end"
                 android:singleLine="true"
                 android:layout_centerVertical="true"
                 android:text="test"
@@ -41,6 +43,8 @@
                 android:id="@+id/artist"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ems="15"
+                android:ellipsize="end"
                 android:layout_below="@+id/title"
                 android:layout_centerVertical="true"
                 android:layout_toRightOf="@+id/image"

@@ -1,22 +1,60 @@
 package com.example.myapplication;
 
-public class MusicVO{
-    private String title, artist;
-    private long duration ;
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class MusicVO implements Parcelable {
+    private String title, artist, path;
+    private int duration ;
     private int album_id;
 
-    public MusicVO(String title, long duration, String artist, int album_id){
+    public static final Creator<MusicVO> CREATOR = new Creator<MusicVO>() {
+        @Override
+        public MusicVO createFromParcel(Parcel source) {
+            return new MusicVO(source);
+        }
+
+        @Override
+        public MusicVO[] newArray(int size) {
+            return new MusicVO[size];
+        }
+    };
+
+    protected MusicVO(Parcel in){
+        title = in.readString();
+        artist= in.readString();
+        duration = in.readInt();
+        album_id = in.readInt();
+        path = in.readString();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(title);
+        dest.writeString(artist);
+        dest.writeInt(duration);
+        dest.writeInt(album_id);
+        dest.writeString(path);
+    }
+
+    public MusicVO(String title, int duration, String artist, int album_id, String path){
         this.title  = title;
         this.duration = duration;
         this.artist = artist;
         this.album_id = album_id;
+        this.path = path;
     }
 
     public void setTitle(String title){
         this.title = title;
     }
 
-    public void setDuration(long duration){
+    public void setDuration(int duration){
         this.duration = duration;
     }
 
@@ -24,7 +62,7 @@ public class MusicVO{
         return this.title;
     }
 
-    public long getDuration(){
+    public int getDuration(){
         return this.duration;
     }
 
@@ -44,4 +82,11 @@ public class MusicVO{
         return album_id;
     }
 
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 }
