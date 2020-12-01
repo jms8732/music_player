@@ -24,9 +24,11 @@ import androidx.core.app.NotificationCompat;
 
 import java.io.FileDescriptor;
 
-public class MusicService extends Service {
+public class MusicService extends Service implements MediaPlayer.OnCompletionListener {
     private MediaPlayer mp = null;
     private MusicBinder binder = new MusicBinder();
+    private final int FINISH = 1;
+    private onFinishListener finishListener;
 
     @Override
     public void onCreate() {
@@ -37,33 +39,76 @@ public class MusicService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        if(mp != null) {
+            mp.stop();
+            mp.release();
+        }
         log("Service onDestroy....");
+    }
+
+    public void setFinishListener(onFinishListener listener){
+        this.finishListener = listener;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         log("Service onStartCommand.....");
 
-        Notification noti = makeNotification(intent);
-        startForeground(2, noti);
+        int code = intent.getIntExtra("code", -1);
 
-        setMusic(intent);
-        return START_STICKY;
+        if (code == FINISH) {
+            stopSelf();
+            return super.onStartCommand(intent, flags, startId);
+        } else {
+            Notification noti = makeNotification(intent);
+            startForeground(1, noti);
+
+            return START_STICKY_COMPATIBILITY;
+        }
     }
 
     //Mediaplayer 설정
-    private void setMusic(Intent intent){
-        MusicVO musicVO = intent.getParcelableExtra("data");
-
+    public void setMusic(String path) {
         //이전에 존재한 Mediaplayer 멈춤
-        if(mp != null && mp.isPlaying())
+        if (mp != null && mp.isPlaying())
             mp.stop();
 
-        mp = MediaPlayer.create(this,Uri.parse(musicVO.getPath()));
+        mp = MediaPlayer.create(this, Uri.parse(path));
+        mp.start();
     }
 
-    public MediaPlayer getMp(){
-        return mp;
+    public void musicStart() {
+        mp.start();
+    }
+
+    public void musicPause() {
+        mp.pause();
+    }
+
+    public boolean isPlaying() {
+        return mp.isPlaying();
+    }
+
+    public boolean isMpNull(){
+        return mp == null ? true : false;
+    }
+
+    public int getCurrentDuration(){
+        if(mp!= null)
+            return mp.getCurrentPosition();
+
+        return 0;
+    }
+
+    public void musicStop(){
+        mp.stop();
+        mp.release();
+    }
+
+    @Override
+    public void onCompletion(MediaPlayer mp) {
+        finishListener.finish(true);
     }
 
     private Notification makeNotification(Intent intent) {
@@ -82,13 +127,11 @@ public class MusicService extends Service {
             builder = new NotificationCompat.Builder(this);
         }
 
-        Intent aIntent = new Intent(this, MusicActivity.class);
-        aIntent.putExtra("data", intent.getParcelableExtra("data"));
+        Intent aIntent = new Intent(this, MainActivity.class);
 
-        PendingIntent pIntent = PendingIntent.getActivity(this, 101, aIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        PendingIntent pIntent = PendingIntent.getActivity(this, 102, aIntent, PendingIntent.FLAG_CANCEL_CURRENT);
         MusicVO musicVO = intent.getParcelableExtra("data");
 
-        //todo RemoteView add
         builder.setContentTitle(musicVO.getTitle());
         builder.setContentText(musicVO.getArtist());
         builder.setSmallIcon(R.drawable.play);
@@ -96,7 +139,7 @@ public class MusicService extends Service {
         builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS);
         builder.setVibrate(new long[]{0});
 
-        RemoteViews contentView = new RemoteViews(getPackageName(),R.layout.custom_remoteview);
+        RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.custom_remoteview);
         settingRemoteView(contentView, intent);
         builder.setContent(contentView);
 
@@ -110,17 +153,24 @@ public class MusicService extends Service {
         return binder;
     }
 
+
     //RemoteView 설정
-    private void settingRemoteView(RemoteViews contentView,Intent intent){
+    private void settingRemoteView(RemoteViews contentView, Intent intent) {
         MusicVO musicVO = intent.getParcelableExtra("data");
-        contentView.setTextViewText(R.id.remoteView_title,musicVO.getTitle());
-        contentView.setTextViewText(R.id.remoteView_artist,musicVO.getArtist());
+        contentView.setTextViewText(R.id.remoteView_title, musicVO.getTitle());
+        contentView.setTextViewText(R.id.remoteView_artist, musicVO.getArtist());
 
         Bitmap bitmap = getAlbumart(musicVO.getAlbum_id());
 
-        if(bitmap == null)
-            bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.volume);
-        contentView.setImageViewBitmap(R.id.remoteView_image,bitmap);
+        if (bitmap == null)
+            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.volume);
+        contentView.setImageViewBitmap(R.id.remoteView_image, bitmap);
+
+        Intent cIntent = new Intent(this, MusicService.class);
+        cIntent.putExtra("code", FINISH);
+        PendingIntent pIntent = PendingIntent.getService(this, 0, cIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        contentView.setOnClickPendingIntent(R.id.remoteView_close, pIntent);
     }
 
     private void log(String s) {
@@ -153,4 +203,6 @@ public class MusicService extends Service {
         }
         return bm;
     }
+
+
 }

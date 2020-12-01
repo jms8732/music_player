@@ -44,7 +44,7 @@
             <com.skydoves.transformationlayout.TransformationLayout
                 android:id="@+id/transformation_layout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 app:transformation_duration="600"
                 app:transformation_direction="auto"
                 app:transformation_targetView="@id/targetView"
@@ -54,10 +54,11 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="60dp"
                     android:background="@color/bright_gray"
                     android:orientation="horizontal"
                     android:id="@+id/belowMusicMenu"
+                    android:gravity="center_vertical"
                     android:visibility="gone"
                     android:padding="3dp">
 
@@ -66,7 +67,8 @@
                         android:layout_width="0dp"
                         android:layout_height="30dp"
                         android:layout_weight="1"
-                        android:src="@drawable/pause" />
+                        android:scaleType="centerInside"
+                        android:src="@drawable/play" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -101,6 +103,7 @@
                         android:layout_width="0dp"
                         android:layout_height="30dp"
                         android:layout_weight="1"
+                        android:scaleType="centerInside"
                         android:src="@android:drawable/ic_menu_more" />
 
                 </LinearLayout>
