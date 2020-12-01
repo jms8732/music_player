@@ -34,7 +34,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:backgroundTint="@color/colorPrimary"
-                    android:thumbTint="@android:color/transparent" />
+                    android:thumbTint="@color/bright_gray"/>
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -112,7 +112,7 @@
                         android:src="@drawable/fast_rewind" />
 
                     <ImageButton
-                        android:id="@+id/play"
+                        android:id="@+id/detail_play"
                         android:layout_width="0dp"
                         android:layout_height="@dimen/music_image_button"
                         android:layout_weight="1"
