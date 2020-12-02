@@ -76,8 +76,14 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
             log("connected...");
 
 
-            if (!mService.isMpNull()){
-                changePlayImage(true);
+            if (!mService.isMpNull()) {
+                if (mService.isPlaying())
+                    changePlayImage(true);
+                else {
+                    current_duration.setText(convertDuration(mService.getCurrentDuration()));
+                    music_progress.setProgress(mService.getCurrentDuration());
+                    changePlayImage(false);
+                }
             }
         }
 
@@ -159,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
     }
 
 
-
     //확장한 회면 높이 조절
     private void setLayoutHeight() {
         ViewGroup.LayoutParams params = music_detail.getLayoutParams();
@@ -182,7 +187,8 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
                 , MediaStore.Audio.Artists.ARTIST
                 , MediaStore.Audio.AlbumColumns.ALBUM_ID
                 , MediaStore.Audio.AudioColumns.DURATION
-                , MediaStore.Audio.AudioColumns.DATA};
+                , MediaStore.Audio.AudioColumns.DATA
+                , MediaStore.Audio.Media._ID};
 
         String selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
         String[] selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
@@ -195,8 +201,9 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
             int album_id = cursor.getInt(2);
             int duration = cursor.getInt(3);
             String data = cursor.getString(4);
+            String id = cursor.getString(5);
 
-            musics.add(new MusicVO(title, duration, artist, album_id, data));
+            musics.add(new MusicVO(title, duration, artist, album_id, data,id));
         }
 
         //마지막에 '맨 위로' 처리
@@ -209,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
         current_duration.setText(convertDuration(0));
         music_progress.setProgress(0);
 
-        mService.musicPause();
+        changePlayImage(false);
     }
 
     //뷰 세팅
@@ -328,6 +335,11 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
         editor.apply();
     }
 
+    @Override
+    public void ChangeStatus(boolean c) {
+        changePlayImage(c);
+    }
+
     //이미지 변경 메소드
     private void changePlayImage(boolean b) {
         if (b) {
@@ -354,10 +366,29 @@ public class MainActivity extends AppCompatActivity implements OnSelectedItemLis
                         changePlayImage(false);
                         mService.musicPause();
                     } else {
+                        Intent intent = new Intent(this,MusicService.class);
+                        intent.putExtra("data",musics.get(position));
+                        adapter.setId(musics.get(position).getId());
+
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                            startForegroundService(intent);
+                        else
+                            startService(intent);
+
                         changePlayImage(true);
                         mService.musicStart();
                     }
                 } else {
+                    //이미 한번이라도 음악을 들었을 경우
+                    Intent intent = new Intent(this,MusicService.class);
+                    intent.putExtra("data",musics.get(position));
+                    adapter.setId(musics.get(position).getId());
+
+                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                        startForegroundService(intent);
+                    else
+                        startService(intent);
+
                     mService.setMusic(musics.get(position).getPath());
                     changePlayImage(true);
                 }

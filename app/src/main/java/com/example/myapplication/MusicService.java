@@ -29,6 +29,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private MusicBinder binder = new MusicBinder();
     private final int FINISH = 1;
     private onFinishListener finishListener;
+    private String path;
 
     @Override
     public void onCreate() {
@@ -40,14 +41,14 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onDestroy() {
         super.onDestroy();
 
-        if(mp != null) {
+        if (mp != null) {
             mp.stop();
             mp.release();
         }
         log("Service onDestroy....");
     }
 
-    public void setFinishListener(onFinishListener listener){
+    public void setFinishListener(onFinishListener listener) {
         this.finishListener = listener;
     }
 
@@ -74,7 +75,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (mp != null && mp.isPlaying())
             mp.stop();
 
+        this.path = path;
         mp = MediaPlayer.create(this, Uri.parse(path));
+        mp.setOnCompletionListener(this);
         mp.start();
     }
 
@@ -90,20 +93,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         return mp.isPlaying();
     }
 
-    public boolean isMpNull(){
+    public boolean isMpNull() {
         return mp == null ? true : false;
     }
 
-    public int getCurrentDuration(){
-        if(mp!= null)
+    public int getCurrentDuration() {
+        if (mp != null)
             return mp.getCurrentPosition();
 
         return 0;
-    }
-
-    public void musicStop(){
-        mp.stop();
-        mp.release();
     }
 
     @Override

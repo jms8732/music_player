@@ -4,4 +4,6 @@ import android.view.ViewGroup;
 
 public interface OnSelectedItemListener {
     void ChangeLayout(int pos);
+    void ChangeStatus(boolean c);
+
 }
