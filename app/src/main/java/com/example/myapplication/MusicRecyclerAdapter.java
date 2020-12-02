@@ -1,15 +1,19 @@
 package com.example.myapplication;
 
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.icu.text.DecimalFormat;
 import android.icu.text.NumberFormat;
 import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,16 +35,32 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
     private OnSelectedItemListener itemListener;
+    private static String id;
+    private MusicService mService;
 
+    private ServiceConnection conn =new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mService = ((MusicService.MusicBinder)service).getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+        }
+    };
 
     public MusicRecyclerAdapter(Context context, RecyclerView recyclerView) {
         this.context = context;
         this.recyclerView = recyclerView;
+
+        Intent intent = new Intent(context,MusicService.class);
+        context.bindService(intent,conn,Context.BIND_AUTO_CREATE);
     }
 
     public void setList(ArrayList<MusicVO> list) {
         this.list = list;
     }
+
 
     @Override
     public int getItemViewType(int position) {
@@ -96,21 +116,56 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             //마지막인 경우
             recyclerView.getLayoutManager().scrollToPosition(0);
         } else {
-            this.itemListener.ChangeLayout(position);
-/*
-            //todo 선택된 RecyclerView child marquee
-            RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(position);
-            ((MusicHolder)viewHolder).title.setSelected(true);
-            ((MusicHolder)viewHolder).artist.setSelected(true);*/
+            log("ID: " + id);
+            if(id == null) {
+                //맨 처음 터치
+                id = list.get(position).getId();
 
-            Intent intent = new Intent(context, MusicService.class);
-            intent.putExtra("data", list.get(position));
+                this.itemListener.ChangeLayout(position);
 
-            if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
-                context.startForegroundService(intent);
-            } else
-                context.startService(intent);
+                Intent intent = new Intent(context, MusicService.class);
+                intent.putExtra("data", list.get(position));
+
+                if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
+                    context.startForegroundService(intent);
+                } else
+                    context.startService(intent);
+            }else{
+                if(isSameMusicPlaying(id,list.get(position).getId())){
+                    //현재 동일한 음악을 누른 경우
+                    if(mService.isPlaying()){
+                        mService.musicPause();
+                    }else
+                        mService.musicStart();
+                    this.itemListener.ChangeStatus(mService.isPlaying());
+                }else {
+                    this.itemListener.ChangeLayout(position);
+
+                    Intent intent = new Intent(context, MusicService.class);
+                    intent.putExtra("data", list.get(position));
+                    if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
+                        context.startForegroundService(intent);
+                    } else
+                        context.startService(intent);
+                }
+                id = list.get(position).getId();
+            }
         }
+    }
+
+    public void setId(String id){
+        this.id = id;
+    }
+
+    private boolean isSameMusicPlaying(String previous_id, String current_id){
+        if(previous_id.equals(current_id))
+            return true;
+
+        return false;
+    }
+
+    private void log(String s) {
+        Log.d("jms8732", s);
     }
 
     //1000 millisec = 1sec;

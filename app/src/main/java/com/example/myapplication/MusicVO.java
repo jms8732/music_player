@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public class MusicVO implements Parcelable {
-    private String title, artist, path;
+    private String title, artist, path, id;
     private int duration ;
     private int album_id;
 
@@ -26,6 +26,7 @@ public class MusicVO implements Parcelable {
         duration = in.readInt();
         album_id = in.readInt();
         path = in.readString();
+        id = in.readString();
     }
 
     @Override
@@ -40,14 +41,16 @@ public class MusicVO implements Parcelable {
         dest.writeInt(duration);
         dest.writeInt(album_id);
         dest.writeString(path);
+        dest.writeString(id);
     }
 
-    public MusicVO(String title, int duration, String artist, int album_id, String path){
+    public MusicVO(String title, int duration, String artist, int album_id, String path, String id){
         this.title  = title;
         this.duration = duration;
         this.artist = artist;
         this.album_id = album_id;
         this.path = path;
+        this.id = id;
     }
 
     public void setTitle(String title){
@@ -88,5 +91,13 @@ public class MusicVO implements Parcelable {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getId(){
+        return this.id;
+    }
+
+    public void setId(String id){
+        this.id = id;
     }
 }
