@@ -95,13 +95,6 @@
                     android:gravity="center"
                     android:orientation="horizontal">
 
-                    <ImageButton
-                        android:id="@+id/skip_previous"
-                        android:layout_width="0dp"
-                        android:layout_height="@dimen/music_image_button"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        android:src="@drawable/skip_previous" />
 
                     <ImageButton
                         android:id="@+id/fast_rewind"
@@ -127,13 +120,6 @@
                         android:background="@android:color/transparent"
                         android:src="@drawable/fast_forward" />
 
-                    <ImageButton
-                        android:id="@+id/skip_next"
-                        android:layout_width="0dp"
-                        android:layout_height="@dimen/music_image_button"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        android:src="@drawable/skip_next" />
                 </LinearLayout>
 
                 <LinearLayout

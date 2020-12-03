@@ -28,6 +28,7 @@ import com.bumptech.glide.Glide;
 
 import java.io.FileDescriptor;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener {
     private ArrayList<MusicVO> list;
@@ -35,13 +36,13 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
     private OnSelectedItemListener itemListener;
-    private static String id;
+    public static String id;
     private MusicService mService;
 
-    private ServiceConnection conn =new ServiceConnection() {
+    private ServiceConnection conn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            mService = ((MusicService.MusicBinder)service).getService();
+            mService = ((MusicService.MusicBinder) service).getService();
         }
 
         @Override
@@ -53,8 +54,8 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         this.context = context;
         this.recyclerView = recyclerView;
 
-        Intent intent = new Intent(context,MusicService.class);
-        context.bindService(intent,conn,Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(context, MusicService.class);
+        context.bindService(intent, conn, Context.BIND_AUTO_CREATE);
     }
 
     public void setList(ArrayList<MusicVO> list) {
@@ -116,8 +117,8 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             //마지막인 경우
             recyclerView.getLayoutManager().scrollToPosition(0);
         } else {
-            log("ID: " + id);
-            if(id == null) {
+            log("id : " + id);
+            if (id == null) {
                 //맨 처음 터치
                 id = list.get(position).getId();
 
@@ -125,24 +126,27 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
                 Intent intent = new Intent(context, MusicService.class);
                 intent.putExtra("data", list.get(position));
+                intent.putExtra("array", makeOrder(position));
 
                 if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
                     context.startForegroundService(intent);
                 } else
                     context.startService(intent);
-            }else{
-                if(isSameMusicPlaying(id,list.get(position).getId())){
+            } else {
+                if (isSameMusicPlaying(id, list.get(position).getId())) {
                     //현재 동일한 음악을 누른 경우
-                    if(mService.isPlaying()){
+                    if (mService.isPlaying()) {
                         mService.musicPause();
-                    }else
+                    } else
                         mService.musicStart();
                     this.itemListener.ChangeStatus(mService.isPlaying());
-                }else {
+                } else {
                     this.itemListener.ChangeLayout(position);
 
                     Intent intent = new Intent(context, MusicService.class);
                     intent.putExtra("data", list.get(position));
+                    intent.putExtra("array", makeOrder(position));
+
                     if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
                         context.startForegroundService(intent);
                     } else
@@ -153,12 +157,40 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
 
-    public void setId(String id){
+
+    public void setId(String id) {
         this.id = id;
     }
 
-    private boolean isSameMusicPlaying(String previous_id, String current_id){
-        if(previous_id.equals(current_id))
+    //순서를 만드는 메소드
+    private String makeOrder(int first) {
+        StringBuilder sb = new StringBuilder();
+        boolean[] visited = new boolean[list.size() - 1];
+        visited[first] = true;
+
+        sb.append(list.size() - 1 + " ");
+        sb.append(first + " ");
+
+        for (int i = 1; i < visited.length; i++) {
+            sb.append(getIdx(visited) + " ");
+        }
+
+        return sb.toString().trim();
+    }
+
+    private int getIdx(boolean visited[]) {
+        Random rand = new Random();
+        while (true) {
+            int idx = rand.nextInt(visited.length);
+            if (!visited[idx]) {
+                visited[idx] = true;
+                return idx;
+            }
+        }
+    }
+
+    private boolean isSameMusicPlaying(String previous_id, String current_id) {
+        if (previous_id.equals(current_id))
             return true;
 
         return false;
