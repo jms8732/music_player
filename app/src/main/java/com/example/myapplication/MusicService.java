@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentUris;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -23,19 +24,35 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import java.io.FileDescriptor;
+import java.nio.BufferUnderflowException;
+import java.nio.channels.InterruptedByTimeoutException;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener {
     private MediaPlayer mp = null;
     private MusicBinder binder = new MusicBinder();
     private final int FINISH = 1;
-    private onFinishListener finishListener;
-    private String path;
+    private int[] music_order;
+    private int position;
+    private SharedPreferences prefs;
+    private ArrayList<MusicVO> list;
 
     @Override
     public void onCreate() {
         super.onCreate();
         log("Service onCreate...");
+
+        prefs = getSharedPreferences("Status", MODE_PRIVATE);
+        position = prefs.getInt("pos", -1);
+        String order = prefs.getString("order", null);
+
+        //순서 세팅
+        if (order != null) {
+            setMusicOrder(order);
+        }
     }
+
 
     @Override
     public void onDestroy() {
@@ -45,11 +62,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             mp.stop();
             mp.release();
         }
-        log("Service onDestroy....");
-    }
 
-    public void setFinishListener(onFinishListener listener) {
-        this.finishListener = listener;
+        log("Service onDestroy....");
     }
 
     @Override
@@ -62,20 +76,60 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             stopSelf();
             return super.onStartCommand(intent, flags, startId);
         } else {
-            Notification noti = makeNotification(intent);
-            startForeground(1, noti);
+            Notification noti = makeNotification((MusicVO) intent.getParcelableExtra("data"));
 
+            if (code != 2) {
+                String order = intent.getStringExtra("array");
+
+                setMusicOrder(order);
+                savePosition();
+                saveOrder(order);
+
+                setMusic(((MusicVO) intent.getParcelableExtra("data")).getPath());
+            }
+
+            startForeground(1, noti);
             return START_STICKY_COMPATIBILITY;
         }
+    }
+
+    //노래 순서 설정
+    private void setMusicOrder(String order) {
+        log("Music order : " + order);
+        StringTokenizer st = new StringTokenizer(order);
+        music_order = new int[Integer.parseInt(st.nextToken())];
+
+        position = 0;
+
+        for (int i = 0; i < music_order.length; i++) {
+            music_order[i] = Integer.parseInt(st.nextToken());
+        }
+    }
+
+    public void saveOrder(String order){
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("order",order);
+        editor.apply();
+    }
+
+    public void savePosition(){
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("pos",position);
+        editor.apply();
+    }
+
+    public void setMusicList(ArrayList<MusicVO> list) {
+        this.list = list;
     }
 
     //Mediaplayer 설정
     public void setMusic(String path) {
         //이전에 존재한 Mediaplayer 멈춤
-        if (mp != null && mp.isPlaying())
-            mp.stop();
+        if (mp != null && mp.isPlaying()) {
+            mp.pause();
+            mp.release();
+        }
 
-        this.path = path;
         mp = MediaPlayer.create(this, Uri.parse(path));
         mp.setOnCompletionListener(this);
         mp.start();
@@ -83,6 +137,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
     public void musicStart() {
         mp.start();
+    }
+
+    public void setProgress(int progress) {
+        mp.seekTo(progress);
     }
 
     public void musicPause() {
@@ -104,12 +162,48 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         return 0;
     }
 
-    @Override
-    public void onCompletion(MediaPlayer mp) {
-        finishListener.finish(true);
+    //다음 노래
+    public int getNextMusic() {
+        ++position;
+
+        savePosition();
+        return music_order[position % music_order.length];
     }
 
-    private Notification makeNotification(Intent intent) {
+    @Override
+    public void onCompletion(MediaPlayer mp) {
+        //현재 실행중인 음악이 종료됬을 시,
+        if (position + 1 < music_order.length) {
+            //아직 실행 시킬 음악이 남아 있을 경우
+            position++;
+
+            savePosition();
+            Intent intent = new Intent("com.example.musicPlayer");
+            intent.putExtra("pos", music_order[position]);
+            sendBroadcast(intent);
+
+            MusicRecyclerAdapter.id = list.get(music_order[position]).getId();
+
+            Notification noti = makeNotification(list.get(music_order[position]));
+            setMusic(list.get(music_order[position]).getPath());
+            if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
+                startForeground(1, noti);
+            } else
+                startService(intent);
+        } else {
+            //없을 경우
+            mp.release();
+            stopSelf();
+        }
+    }
+
+    public int getPosition() {
+        if(music_order == null)
+            return -1;
+        return music_order[position];
+    }
+
+    private Notification makeNotification(MusicVO musicVO) {
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -128,7 +222,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         Intent aIntent = new Intent(this, MainActivity.class);
 
         PendingIntent pIntent = PendingIntent.getActivity(this, 102, aIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        MusicVO musicVO = intent.getParcelableExtra("data");
 
         builder.setContentTitle(musicVO.getTitle());
         builder.setContentText(musicVO.getArtist());
@@ -138,7 +231,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         builder.setVibrate(new long[]{0});
 
         RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.custom_remoteview);
-        settingRemoteView(contentView, intent);
+        settingRemoteView(contentView, musicVO);
         builder.setContent(contentView);
 
         return builder.build();
@@ -153,8 +246,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
 
     //RemoteView 설정
-    private void settingRemoteView(RemoteViews contentView, Intent intent) {
-        MusicVO musicVO = intent.getParcelableExtra("data");
+    private void settingRemoteView(RemoteViews contentView, MusicVO musicVO) {
         contentView.setTextViewText(R.id.remoteView_title, musicVO.getTitle());
         contentView.setTextViewText(R.id.remoteView_artist, musicVO.getArtist());
 

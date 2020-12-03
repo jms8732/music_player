@@ -71,12 +71,9 @@ public class MusicActivity extends TransformationAppCompatActivity implements Vi
 
         music_image = (ImageView) findViewById(R.id.music_image);
 
-        play = (ImageButton) findViewById(R.id.play);
+        play = (ImageButton) findViewById(R.id.detail_play);
         play.setOnClickListener(this);
-        skip_previous = (ImageButton) findViewById(R.id.skip_previous);
-        skip_previous.setOnClickListener(this);
-        skip_next = (ImageButton) findViewById(R.id.skip_next);
-        skip_next.setOnClickListener(this);
+
         music_progress = (SeekBar) findViewById(R.id.music_progress);
         speaker = (SeekBar)findViewById(R.id.speaker);
         manager = (AudioManager)getSystemService(AUDIO_SERVICE);
