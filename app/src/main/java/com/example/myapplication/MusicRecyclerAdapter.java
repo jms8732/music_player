@@ -35,27 +35,10 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private Context context;
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
-    private OnSelectedItemListener itemListener;
-    public static String id;
-    private MusicService mService;
-
-    private ServiceConnection conn = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mService = ((MusicService.MusicBinder) service).getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-        }
-    };
 
     public MusicRecyclerAdapter(Context context, RecyclerView recyclerView) {
         this.context = context;
         this.recyclerView = recyclerView;
-
-        Intent intent = new Intent(context, MusicService.class);
-        context.bindService(intent, conn, Context.BIND_AUTO_CREATE);
     }
 
     public void setList(ArrayList<MusicVO> list) {
@@ -66,11 +49,9 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public int getItemViewType(int position) {
         return list.get(position) != null ? TYPE_MUSIC : TYPE_LAST;
+
     }
 
-    public void setItemListener(OnSelectedItemListener listener) {
-        this.itemListener = listener;
-    }
 
     @NonNull
     @Override
@@ -117,88 +98,18 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             //마지막인 경우
             recyclerView.getLayoutManager().scrollToPosition(0);
         } else {
-            log("id : " + id);
-            if (id == null) {
-                //맨 처음 터치
-                id = list.get(position).getId();
+           Intent sIntent = new Intent(context,MusicService.class);
+           sIntent.putExtra("data",list.get(position));
+           sIntent.putExtra("current",position);
+           sIntent.putExtra("code",1);
 
-                this.itemListener.ChangeLayout(position);
-
-                Intent intent = new Intent(context, MusicService.class);
-                intent.putExtra("data", list.get(position));
-                intent.putExtra("array", makeOrder(position));
-
-                if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
-                    context.startForegroundService(intent);
-                } else
-                    context.startService(intent);
-            } else {
-                if (isSameMusicPlaying(id, list.get(position).getId())) {
-                    //현재 동일한 음악을 누른 경우
-                    if (mService.isPlaying()) {
-                        mService.musicPause();
-                    } else
-                        mService.musicStart();
-                    this.itemListener.ChangeStatus(mService.isPlaying());
-                } else {
-                    this.itemListener.ChangeLayout(position);
-
-                    Intent intent = new Intent(context, MusicService.class);
-                    intent.putExtra("data", list.get(position));
-                    intent.putExtra("array", makeOrder(position));
-
-                    if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
-                        context.startForegroundService(intent);
-                    } else
-                        context.startService(intent);
-                }
-                id = list.get(position).getId();
-            }
+           if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+               context.startForegroundService(sIntent);
+           else
+               context.startService(sIntent);
         }
     }
 
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    //순서를 만드는 메소드
-    private String makeOrder(int first) {
-        StringBuilder sb = new StringBuilder();
-        boolean[] visited = new boolean[list.size() - 1];
-        visited[first] = true;
-
-        sb.append(list.size() - 1 + " ");
-        sb.append(first + " ");
-
-        for (int i = 1; i < visited.length; i++) {
-            sb.append(getIdx(visited) + " ");
-        }
-
-        return sb.toString().trim();
-    }
-
-    private int getIdx(boolean visited[]) {
-        Random rand = new Random();
-        while (true) {
-            int idx = rand.nextInt(visited.length);
-            if (!visited[idx]) {
-                visited[idx] = true;
-                return idx;
-            }
-        }
-    }
-
-    private boolean isSameMusicPlaying(String previous_id, String current_id) {
-        if (previous_id.equals(current_id))
-            return true;
-
-        return false;
-    }
-
-    private void log(String s) {
-        Log.d("jms8732", s);
-    }
 
     //1000 millisec = 1sec;
     private String convertDuration(long duration) {
