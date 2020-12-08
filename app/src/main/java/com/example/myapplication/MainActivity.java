@@ -19,13 +19,16 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -43,6 +46,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -53,12 +57,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.StringTokenizer;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, ServiceNumber {
-    private ArrayList<MusicVO> musics = new ArrayList<>();
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private ArrayList<String> musics = new ArrayList<>();
     private RecyclerView recyclerView;
     private TextView status_show, thumbnail_title, thumbnail_artist, music_title, music_artist, current_duration, total_duration;
-    private ImageView thumbnail_play, play, music_image, fast_rewind, fast_forward;
+    private ImageView thumbnail_play, play, music_image, fast_rewind, fast_forward, repeat, loop;
     private MusicRecyclerAdapter adapter;
     private LinearLayout belowMusicMenu;
     private TransformationLayout transformationLayout;
@@ -67,23 +74,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private View music_detail;
     private long pressedTime;
     private MusicService mService;
-    private ProgressAsync async;
-    private boolean isService, isPlaying;
+    private Handler handler = null;
+    private MusicThread thread;
+    private boolean isService;
+    private final int SEND_INFO = 1, SEND_STOP = 2;
 
     private BroadcastReceiver serviceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int code = intent.getIntExtra("code", -1);
             int position = intent.getIntExtra("pos", -1);
+            int code = intent.getIntExtra("code", -1);
 
-            log("Pos: " + position);
-            if (code == -1) {
-                //코드가 없는 경우
-            } else if (code == MUSIC_START) {
+            if (code == 1) {
+                boolean s = intent.getBooleanExtra("status", false);
+                changePlayButton(s);
+            } else {
                 makeMusicView(position);
-            } else if (code == MUSIC_FINISH) {
-                mService.moveMusic(true);
             }
+
         }
     };
 
@@ -98,7 +106,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             mService.setList(musics); //현재 노래 곡 세팅
             int position = mService.getPosition();
-
             if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
                 init(position);
             } else
@@ -121,6 +128,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bindService(intent, conn, BIND_AUTO_CREATE);
         registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
 
+        handler = new Handler() {
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                switch (msg.what) {
+                    case SEND_INFO:
+                        current_duration.setText(convertDuration(msg.arg1));
+                        music_progress.setProgress(msg.arg1);
+                        break;
+
+                    case SEND_STOP:
+                        if (thread != null)
+                            thread.stopThread();
+                        break;
+                }
+            }
+        };
+
+
         manager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         recyclerView = (RecyclerView) findViewById(R.id.recycle_view);
@@ -142,9 +167,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onDestroy() {
         super.onDestroy();
         log("onDestroy...");
-        isPlaying = false;
 
         unregisterReceiver(serviceReceiver);
+        handler.sendEmptyMessage(SEND_STOP);
     }
 
 
@@ -152,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void init(int position) {
         adapter = new MusicRecyclerAdapter(this, recyclerView);
 
+        //todo id 저장
         searchMusicPath();
 
         if (!musics.isEmpty()) {
@@ -159,13 +185,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             adapter.setList(musics);
 
             recyclerView.setAdapter(adapter);
-            recyclerView.setLayoutManager(new CenterLayoutManager(this));
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
 
         setLayout(position);
-        setPermission();
+
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        int vol = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            manager.setStreamVolume(AudioManager.STREAM_MUSIC, vol - 1, AudioManager.FLAG_PLAY_SOUND);
+        } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            manager.setStreamVolume(AudioManager.STREAM_MUSIC, vol + 1, AudioManager.FLAG_PLAY_SOUND);
+        }
+
+        vol = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        speaker.setProgress(vol);
+        return super.onKeyDown(keyCode, event);
+    }
 
     //확장된 레이아웃 세팅
     private void setLayout(int position) {
@@ -176,20 +215,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onSwipeBottom() {
                 if (transformationLayout.isTransformed())
-                    transformationLayout.finishTransform();
+                    finishTransform();
             }
         });
 
-        play = (ImageButton) music_detail.findViewById(R.id.detail_play);
+        play = (ImageView) music_detail.findViewById(R.id.detail_play);
         play.setOnClickListener(this);
         music_title = (TextView) music_detail.findViewById(R.id.music_title);
         music_title.setSelected(true);
         music_artist = (TextView) music_detail.findViewById(R.id.artist);
         music_artist.setSelected(true);
-        fast_forward = (ImageButton) music_detail.findViewById(R.id.fast_forward);
+        fast_forward = (ImageView) music_detail.findViewById(R.id.fast_forward);
         fast_forward.setOnClickListener(this);
-        fast_rewind = (ImageButton) music_detail.findViewById(R.id.fast_rewind);
+        fast_rewind = (ImageView) music_detail.findViewById(R.id.fast_rewind);
         fast_rewind.setOnClickListener(this);
+        repeat = (ImageView) music_detail.findViewById(R.id.repeat);
+        repeat.setOnClickListener(this);
+        loop = (ImageView)music_detail.findViewById(R.id.loop);
+        loop.setOnClickListener(this);
+
+        if (mService.getOrderStatus())
+            repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.repeat, null));
+        else
+            repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.shuffle, null));
+
+        if(mService.getLoopStatus())
+            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_activate,null));
+        else
+            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_deactivate,null));
 
         current_duration = (TextView) music_detail.findViewById(R.id.current_duration);
         current_duration.setText(convertDuration(0));
@@ -220,6 +273,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         speaker.setProgress(vol);
         speaker.setMax(max);
+        speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                manager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, AudioManager.FLAG_PLAY_SOUND);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         if (position != -1) { //이전에 한번이라도 튼 경우
             makeMusicView(position);
@@ -228,69 +297,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         log("setLayout...");
     }
 
-    private void setPermission() {
-        //화면 전환을 permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            //시스템에 쓰기 위한
-            if (!Settings.System.canWrite(this)) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + this.getPackageName()));
-                startActivity(intent);
-            }
-        } else {
-            //시스템에 쓰기 위한
-            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:" + this.getPackageName()));
-            startActivity(intent);
-        }
-    }
-
     //하단 음악 플레이어 뷰를 구성하는 메소드
     private void makeMusicView(int position) {
-        MusicVO musicVO = musics.get(position);
-
-        recyclerView.smoothScrollToPosition(position);
+        String id = musics.get(position);
+        String title = MusicSearcher.findDisplayName(this, id);
+        String artist = MusicSearcher.findArtist(this, id);
+        int duration = MusicSearcher.findDuration(this, id);
+        int albumId = MusicSearcher.findAlbumId(this, id);
 
         belowMusicMenu.setVisibility(View.VISIBLE);
-        thumbnail_title.setText(musicVO.getTitle());
+        thumbnail_title.setText(title);
         thumbnail_title.setSelected(true); //marquee 진행
-        thumbnail_artist.setText(musicVO.getArtist());
+        thumbnail_artist.setText(artist);
 
-        music_title.setText(musicVO.getTitle());
-        music_artist.setText(musicVO.getArtist());
-        total_duration.setText(convertDuration(musicVO.getDuration()));
+        music_title.setText(title);
+        music_artist.setText(artist);
+        total_duration.setText(convertDuration(duration));
 
-        music_progress.setMax(musicVO.getDuration());
+        music_progress.setMax(duration);
 
         Glide.with(this)
-                .load(getAlbumart(musicVO.getAlbum_id()))
-                .centerInside()
+                .load(getAlbumart(albumId))
+                .fitCenter()
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .into(music_image);
 
-        //transformationLayout.bindTargetView(music_detail);
-
-        log("Playing : " + mService.isPlaying());
         changePlayButton(mService.isPlaying());
     }
 
     private void changePlayButton(boolean p) {
         if (p) {
             //노래가 실행 중
-            if(async != null) {
-                log("cancel : " + async.isCancelled());
-                if (async.isCancelled())
-                    async.cancel(true);
-            }
-
             play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.pause, null));
             thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.pause, null));
-            isPlaying = true;
-            async = new ProgressAsync();
-            async.execute();
+            thread = new MusicThread();
+            thread.start();
         } else {
             //노래가 멈춤
             play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.play, null));
             thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.play, null));
-            isPlaying = false;
+            handler.sendEmptyMessage(SEND_STOP);
         }
     }
 
@@ -300,7 +346,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Intent intent = new Intent(this, MusicService.class);
             intent.putExtra("code", 1);
             intent.putExtra("data", musics.get(mService.getPosition()));
-            intent.putExtra("current",mService.getPosition());
+            intent.putExtra("current", mService.getPosition());
 
             if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
                 startForegroundService(intent);
@@ -312,19 +358,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (!transformationLayout.isTransformed()) {
                 transformationLayout.startTransform();
             } else {
-                transformationLayout.finishTransform();
+                finishTransform();
             }
-        }else if(v == fast_forward){
-            mService.moveMusic(true);
-        }else if( v== fast_rewind){
-            mService.moveMusic(false);
+        } else if (v == fast_forward || v == fast_rewind) {
+            boolean check = true;
+            if(v == fast_rewind)
+                check = false;
+
+            moveMusic(check);
+        } else if (v == repeat) {
+            boolean status = mService.getOrderStatus();
+            if (!status) {
+                Toast.makeText(this, "순차 재생", Toast.LENGTH_SHORT).show();
+                repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.repeat, null));
+            } else {
+                Toast.makeText(this, "랜덤 재생", Toast.LENGTH_SHORT).show();
+                repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.shuffle, null));
+            }
+
+            mService.makeMusicOrder(mService.getPosition(), !status);
+        } else if( v== loop){
+            boolean status = mService.getLoopStatus();
+            if(!status){
+                Toast.makeText(this, "현재 곡 반복 재생", Toast.LENGTH_SHORT).show();
+                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_activate,null));
+            }else{
+                Toast.makeText(this, "전체 곡 재생", Toast.LENGTH_SHORT).show();
+                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_deactivate,null));
+            }
+
+            log("loop : " + !status);
+            mService.setLoopStatus(!status);
         }
+    }
+
+    private void moveMusic(boolean b) {
+        current_duration.setText(convertDuration(0));
+        music_progress.setProgress(0);
+        mService.moveMusic(b);
+        handler.sendEmptyMessage(SEND_STOP);
     }
 
     @Override
     public void onBackPressed() {
         if (transformationLayout.isTransformed())
-            transformationLayout.finishTransform();
+            finishTransform();
         else {
             if (pressedTime == 0) {
                 Toast.makeText(this, "한 번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show();
@@ -342,34 +420,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    //todo scroll 변경
+    private void finishTransform() {
+        transformationLayout.finishTransform();
+    }
+
     private void log(String s) {
         Log.d("jms8732", s);
     }
 
     //안드로이드 내에 존재하는 파일들을 탐색하여 확장자 mp3를 가진 파일들을 찾는 메소드
     private void searchMusicPath() {
-        final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        final String[] projection = new String[]{MediaStore.Audio.Media.DISPLAY_NAME
-                , MediaStore.Audio.Artists.ARTIST
-                , MediaStore.Audio.AlbumColumns.ALBUM_ID
-                , MediaStore.Audio.AudioColumns.DURATION
-                , MediaStore.Audio.AudioColumns.DATA
-                , MediaStore.Audio.Media._ID};
-
-        String selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
-        String[] selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
-
-        Cursor cursor = this.getContentResolver().query(uri, projection, selection, selectionArgs, null);
+        Cursor cursor = MusicSearcher.findId(this);
 
         while (cursor != null && cursor.moveToNext()) {
-            String title = cursor.getString(0);
-            String artist = cursor.getString(1);
-            int album_id = cursor.getInt(2);
-            int duration = cursor.getInt(3);
-            String data = cursor.getString(4);
-            String id = cursor.getString(5);
-
-            musics.add(new MusicVO(title, duration, artist, album_id, data, id));
+            musics.add(cursor.getString(0));
         }
 
         //마지막에 '맨 위로' 처리
@@ -398,6 +463,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //1000 millisec = 1sec;
+    //todo total Duration 올림 표기
     private String convertDuration(long duration) {
         String ret = null;
 
@@ -430,32 +496,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         } catch (Exception e) {
         }
+
+        if (bm == null)
+            bm = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_foreground);
+
         return bm;
     }
 
-    class ProgressAsync extends AsyncTask<Void, Integer, Void> {
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
+    class MusicThread extends Thread {
+        boolean stopped = false;
+
+        public void stopThread() {
+            stopped = true;
         }
 
         @Override
-        protected void onProgressUpdate(Integer... values) {
-            int val = values[0];
+        public void run() {
+            log("Thread start...");
+            while (!stopped) {
+                Message message = handler.obtainMessage();
+                message.what = SEND_INFO;
+                message.arg1 = mService.getCurrentProgress();
 
-            current_duration.setText(convertDuration(val));
-            music_progress.setProgress(val);
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            log("do in background start...");
-            while (isPlaying) {
-                publishProgress(mService.getCurrentProgress() + 1000);
+                handler.sendMessage(message);
                 SystemClock.sleep(1000);
+
             }
-            log("do in background end....");
-            return null;
+            log("Thread end...");
         }
     }
+
 }

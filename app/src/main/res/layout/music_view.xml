@@ -46,6 +46,7 @@
                 android:layout_height="wrap_content"
                 android:ems="15"
                 android:ellipsize="marquee"
+                android:singleLine="true"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:layout_below="@+id/title"
                 android:layout_centerVertical="true"
