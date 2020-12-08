@@ -10,5 +10,5 @@
     <dimen name="music_thumnail_width">60dp</dimen>
     <dimen name="music_thumnail_height">60dp</dimen>
 
-    <dimen name="music_image_button">100dp</dimen>
+    <dimen name="music_image_button">50dp</dimen>
 </resources>

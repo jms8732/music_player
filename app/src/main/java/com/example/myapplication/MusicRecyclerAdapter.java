@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener {
-    private ArrayList<MusicVO> list;
+    private ArrayList<String> list;
     private Context context;
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
@@ -41,7 +41,7 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         this.recyclerView = recyclerView;
     }
 
-    public void setList(ArrayList<MusicVO> list) {
+    public void setList(ArrayList<String> list) {
         this.list = list;
     }
 
@@ -74,16 +74,19 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof MusicHolder) {
-            String title = list.get(position).getTitle();
-            String artist = list.get(position).getArtist();
-            String duration = convertDuration(list.get(position).getDuration());
+            String id = list.get(position);
+
+            String title = MusicSearcher.findDisplayName(context,id);
+            String artist = MusicSearcher.findArtist(context,id);
+            String duration = convertDuration(MusicSearcher.findDuration(context,id));
+            int albumId=  MusicSearcher.findAlbumId(context,id);
 
             ((MusicHolder) holder).title.setText(title);
             ((MusicHolder) holder).artist.setText(artist);
             ((MusicHolder) holder).duration.setText(duration);
 
             Glide.with(context)
-                    .load(getAlbumart(list.get(position).getAlbum_id()))
+                    .load(getAlbumart(albumId))
                     .fitCenter()
                     .placeholder(R.drawable.ic_launcher_foreground)
                     .into(((MusicHolder) holder).image);
@@ -144,6 +147,10 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             }
         } catch (Exception e) {
         }
+
+        if(bm == null)
+            bm = BitmapFactory.decodeResource(context.getResources(),R.drawable.ic_launcher_foreground);
+
         return bm;
     }
 
