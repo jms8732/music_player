@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -16,7 +15,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,28 +22,25 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
-import android.provider.MediaStore;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.webkit.MimeTypeMap;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -54,15 +49,8 @@ import com.skydoves.transformationlayout.TransformationLayout;
 
 import java.io.FileDescriptor;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.StringTokenizer;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private ArrayList<String> musics = new ArrayList<>();
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, onStartDragListener {
     private RecyclerView recyclerView;
     private TextView status_show, thumbnail_title, thumbnail_artist, music_title, music_artist, current_duration, total_duration;
     private ImageView thumbnail_play, play, music_image, fast_rewind, fast_forward, repeat, loop;
@@ -78,20 +66,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicThread thread;
     private boolean isService;
     private final int SEND_INFO = 1, SEND_STOP = 2;
+    private ItemTouchHelper touchHelper = null;
 
     private BroadcastReceiver serviceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int position = intent.getIntExtra("pos", -1);
+            String id = intent.getStringExtra("id");
             int code = intent.getIntExtra("code", -1);
 
             if (code == 1) {
                 boolean s = intent.getBooleanExtra("status", false);
                 changePlayButton(s);
             } else {
-                makeMusicView(position);
+                makeMusicView(id);
             }
-
         }
     };
 
@@ -103,13 +91,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             isService = true;
 
             log("Service connected...");
-
-            mService.setList(musics); //현재 노래 곡 세팅
-            int position = mService.getPosition();
-            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                init(position);
-            } else
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
+            String id = mService.getId();
+            init(id);
         }
 
         @Override
@@ -120,14 +103,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode){
+            case 101:
+                if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    log("granted....");
+                    Intent intent = new Intent(this, MusicService.class);
+                    bindService(intent, conn, BIND_AUTO_CREATE);
+                    registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
+                }
+                break;
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, conn, BIND_AUTO_CREATE);
-        registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+            Intent intent = new Intent(this, MusicService.class);
+            bindService(intent, conn, BIND_AUTO_CREATE);
+            registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
+        }else
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},101);
 
+        log("onCreate...");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        log("onDestroy...");
+
+        unregisterReceiver(serviceReceiver);
+        handler.sendEmptyMessage(SEND_STOP);
+    }
+
+
+    //뷰 세팅
+    private void init(String id) {
         handler = new Handler() {
             @Override
             public void handleMessage(@NonNull Message msg) {
@@ -159,37 +174,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         belowMusicMenu = (LinearLayout) findViewById(R.id.belowMusicMenu);
         transformationLayout = (TransformationLayout) findViewById(R.id.transformation_layout);
         belowMusicMenu.setOnClickListener(this);
-
-        log("onCreate...");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        log("onDestroy...");
-
-        unregisterReceiver(serviceReceiver);
-        handler.sendEmptyMessage(SEND_STOP);
-    }
+        adapter = new MusicRecyclerAdapter(this, recyclerView, this);
 
 
-    //뷰 세팅
-    private void init(int position) {
-        adapter = new MusicRecyclerAdapter(this, recyclerView);
+        if (touchHelper == null)
+            touchHelper = new ItemTouchHelper(new ItemMoveCallback(adapter));
 
-        //todo id 저장
-        searchMusicPath();
+        ArrayList<String> list = mService.getMusicList();
+        touchHelper.attachToRecyclerView(recyclerView);
 
-        if (!musics.isEmpty()) {
+        if (list != null) {
             status_show.setVisibility(View.GONE);
-            adapter.setList(musics);
+            adapter.setList(list);
 
             recyclerView.setAdapter(adapter);
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
 
-        setLayout(position);
+        setLayout(id);
+    }
 
+    @Override
+    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
+        touchHelper.startDrag(viewHolder);
     }
 
     @Override
@@ -207,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //확장된 레이아웃 세팅
-    private void setLayout(int position) {
+    private void setLayout(String id) {
         music_detail = findViewById(R.id.targetView);
         setLayoutHeight();
 
@@ -231,7 +238,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         fast_rewind.setOnClickListener(this);
         repeat = (ImageView) music_detail.findViewById(R.id.repeat);
         repeat.setOnClickListener(this);
-        loop = (ImageView)music_detail.findViewById(R.id.loop);
+        loop = (ImageView) music_detail.findViewById(R.id.loop);
         loop.setOnClickListener(this);
 
         if (mService.getOrderStatus())
@@ -239,10 +246,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else
             repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.shuffle, null));
 
-        if(mService.getLoopStatus())
-            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_activate,null));
+        if (mService.getLoopStatus())
+            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.loop_activate, null));
         else
-            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_deactivate,null));
+            loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.loop_deactivate, null));
 
         current_duration = (TextView) music_detail.findViewById(R.id.current_duration);
         current_duration.setText(convertDuration(0));
@@ -290,16 +297,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        if (position != -1) { //이전에 한번이라도 튼 경우
-            makeMusicView(position);
+        if (id != null) { //이전에 한번이라도 튼 경우
+            makeMusicView(id);
         }
 
         log("setLayout...");
     }
 
     //하단 음악 플레이어 뷰를 구성하는 메소드
-    private void makeMusicView(int position) {
-        String id = musics.get(position);
+    private void makeMusicView(String id) {
         String title = MusicSearcher.findDisplayName(this, id);
         String artist = MusicSearcher.findArtist(this, id);
         int duration = MusicSearcher.findDuration(this, id);
@@ -345,8 +351,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (v == play || v == thumbnail_play) {
             Intent intent = new Intent(this, MusicService.class);
             intent.putExtra("code", 1);
-            intent.putExtra("data", musics.get(mService.getPosition()));
-            intent.putExtra("current", mService.getPosition());
+            intent.putExtra("data", mService.getId());
 
             if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
                 startForegroundService(intent);
@@ -362,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         } else if (v == fast_forward || v == fast_rewind) {
             boolean check = true;
-            if(v == fast_rewind)
+            if (v == fast_rewind)
                 check = false;
 
             moveMusic(check);
@@ -376,15 +381,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 repeat.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.shuffle, null));
             }
 
-            mService.makeMusicOrder(mService.getPosition(), !status);
-        } else if( v== loop){
+            mService.makeMusicOrder(mService.getId(), !status);
+        } else if (v == loop) {
             boolean status = mService.getLoopStatus();
-            if(!status){
+            if (!status) {
                 Toast.makeText(this, "현재 곡 반복 재생", Toast.LENGTH_SHORT).show();
-                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_activate,null));
-            }else{
+                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.loop_activate, null));
+            } else {
                 Toast.makeText(this, "전체 곡 재생", Toast.LENGTH_SHORT).show();
-                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.loop_deactivate,null));
+                loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.loop_deactivate, null));
             }
 
             log("loop : " + !status);
@@ -428,29 +433,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void log(String s) {
         Log.d("jms8732", s);
     }
-
-    //안드로이드 내에 존재하는 파일들을 탐색하여 확장자 mp3를 가진 파일들을 찾는 메소드
-    private void searchMusicPath() {
-        Cursor cursor = MusicSearcher.findId(this);
-
-        while (cursor != null && cursor.moveToNext()) {
-            musics.add(cursor.getString(0));
-        }
-
-        //마지막에 '맨 위로' 처리
-        musics.add(null);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == 101) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                int position = mService.getPosition();
-                init(position);
-            }
-        }
-    }
-
 
     //확장한 회면 높이 조절
     private void setLayoutHeight() {

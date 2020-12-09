@@ -3,6 +3,7 @@ package com.example.myapplication;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -27,21 +28,23 @@ public class SaveFileManager {
         return prefs.getInt("pos", -1);
     }
 
-    public int[] loadOrder() {
+    public ArrayList<String> loadOrder() {
         String order = prefs.getString("order", null);
-        int[] ret = null;
 
-        if (order != null) {
-            StringTokenizer st = new StringTokenizer(order);
-            ret = new int[Integer.parseInt(st.nextToken())];
+        if(order == null)
+            return null;
 
-            for (int i = 0; i < ret.length; i++) {
-                ret[i] = Integer.parseInt(st.nextToken());
-            }
+        ArrayList<String> ret = new ArrayList<>();
+
+        StringTokenizer st = new StringTokenizer(order);
+
+        while(st.hasMoreElements()){
+            ret.add(st.nextToken());
         }
 
         return ret;
     }
+
 
     public void saveLoopStatus(boolean loopStatus){
         SharedPreferences.Editor editor = prefs.edit();
@@ -61,14 +64,12 @@ public class SaveFileManager {
         editor.apply();
     }
 
-    public void saveOrder(int[] music_order) {
+    public void saveOrder(ArrayList<String> order) {
         SharedPreferences.Editor editor = prefs.edit();
         StringBuilder sb = new StringBuilder();
-        sb.append(music_order.length + " ");
 
-        for (int i : music_order) {
-            sb.append(i + " ");
-        }
+        for(String id : order)
+            sb.append(id + " ");
 
         editor.putString("order", sb.toString().trim());
         editor.apply();

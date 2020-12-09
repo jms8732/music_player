@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,6 +9,8 @@ import android.app.Service;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
@@ -20,7 +23,9 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -31,7 +36,6 @@ import java.util.StringTokenizer;
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener {
     private MediaPlayer mp = null;
     private MusicBinder binder = new MusicBinder();
-    private int[] music_order;
     private int position;
     private String currentMusic = null; //현재 실행되는 음악 id
     private ArrayList<String> list;
@@ -54,11 +58,34 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             saveFileManager = new SaveFileManager(this);
 
         position = saveFileManager.loadPosition();
-        music_order = saveFileManager.loadOrder();
         orderStatus = saveFileManager.loadOrderStatus();
         loopStatus = saveFileManager.loadLoopStatus();
+        list = saveFileManager.loadOrder();
+
+        if (list == null)
+            list = searchMusicPath();
     }
 
+
+    //안드로이드 내에 존재하는 파일들을 탐색하여 확장자 mp3를 가진 파일들을 찾는 메소드
+    private ArrayList<String> searchMusicPath() {
+        ArrayList<String> list = new ArrayList<>();
+        Cursor cursor = MusicSearcher.findId(this);
+
+        while (cursor != null && cursor.moveToNext()) {
+            list.add(cursor.getString(0));
+        }
+
+        //마지막에 '맨 위로' 처리
+        list.add(null);
+
+        return list;
+    }
+
+
+    public ArrayList<String> getMusicList() {
+        return this.list;
+    }
 
     @Override
     public void onDestroy() {
@@ -79,7 +106,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         mp.start();
 
         Intent intent = new Intent("com.example.service");
-        intent.putExtra("pos", music_order[position]);
+        intent.putExtra("id", list.get(position));
         sendBroadcast(intent);
     }
 
@@ -89,14 +116,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         return true; //음악 강제 종료를 피하기 위해 true값 반환
     }
 
-    public void setList(ArrayList<String> list) {
-        this.list = list;
-    }
-
-    public int getPosition() {
-        if (music_order == null)
-            return -1;
-        return music_order[position];
+    public String getId() {
+        if (position == -1)
+            return null;
+        return list.get(position);
     }
 
     @Override
@@ -104,7 +127,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("Service onStartCommand.....");
 
         int code = intent.getIntExtra("code", -1);
-        int current = intent.getIntExtra("current", -1);
         String chooseId = intent.getStringExtra("data");
 
         if (code == -1) {
@@ -115,7 +137,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 //선택한 음악이 기존의 음악과 다른 경우
                 currentMusic = chooseId;
 
-                makeMusicOrder(current, orderStatus);
+                makeMusicOrder(chooseId, orderStatus);
 
                 Notification noti = makeNotification(chooseId);
                 String path = MusicSearcher.findPath(this, chooseId);
@@ -140,6 +162,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
                 sendBroadcast(bIntent);
             }
+        } else if (code == 2) {
+            
+            list = intent.getStringArrayListExtra("list");
         } else if (code == 3) {
             //서비스 종료
             mp.stop();
@@ -148,8 +173,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             stopSelf();
 
             saveFileManager.saveOrderStatus(orderStatus);
-            saveFileManager.saveOrder(music_order);
             saveFileManager.savePoint(position);
+            saveFileManager.saveOrder(list);
+
             return START_NOT_STICKY;
         }
         return START_REDELIVER_INTENT;
@@ -157,25 +183,23 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     //음악 순서를 만드는 메소드
-    public void makeMusicOrder(int current, boolean order) {
-        if (music_order == null) {
-            music_order = new int[list.size() - 1];
-        }
-
+    public void makeMusicOrder(String current, boolean order) {
+        ArrayList<String> temp = new ArrayList<>();
         position = 0;
-        music_order[position] = current; //현재 노래 번호를 맨 처음으로
 
         //상태에 따라 오더를 만든다.
         if (order)
-            sequentialOrder(current);
+            sequentialOrder(current, temp);
         else
-            randomOrder(current);
+            randomOrder(current, temp);
 
         saveFileManager.savePoint(position);
-        saveFileManager.saveOrder(music_order);
 
+        list = null;
+        list = temp;
         orderStatus = order;
         saveFileManager.saveOrderStatus(orderStatus);
+        saveFileManager.saveOrder(list);
     }
 
     public boolean getOrderStatus() {
@@ -191,20 +215,51 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         saveFileManager.saveLoopStatus(loopStatus);
     }
 
-    private void sequentialOrder(int current) {
-        for (int i = 1; i < music_order.length; i++) {
-            music_order[i] = (current + i) % music_order.length;
+    private void sequentialOrder(String current, ArrayList<String> temp) {
+        log("current: " + MusicSearcher.findDisplayName(this, current));
+        ArrayList<String> sequential = searchMusicPath();
+
+        int start_idx = 0;
+        for (int i = 0; i < sequential.size() - 1; i++) {
+            if (sequential.get(i).equals(current)) {
+                //동일한 아이디인 경우
+                start_idx = i;
+                break;
+            }
+        }
+
+        for (int i = 0; i < sequential.size() - 1; i++) {
+            temp.add(sequential.get((start_idx + i) % (sequential.size() - 1)));
+        }
+
+        for (int i = 0; i < sequential.size() - 1; i++) {
+            log("index: " + i + " Title: " + MusicSearcher.findDisplayName(this, temp.get(i)));
         }
 
         log("===========make SequentialOrder==========");
     }
 
-    private void randomOrder(int current) {
-        boolean[] visited = new boolean[music_order.length];
-        visited[current] = true;
+    private void randomOrder(String current, ArrayList<String> temp) {
+        log("current: " + MusicSearcher.findDisplayName(this, current));
+        int start_idx = 0;
+        for (int i = 0; i < list.size() - 1; i++) {
+            if (list.get(i).equals(current)) {
+                //동일한 아이디인 경우
+                start_idx = i;
+                break;
+            }
+        }
 
-        for (int i = 1; i < music_order.length; i++) {
-            music_order[i] = getIdx(visited);
+        boolean[] visited = new boolean[list.size() - 1];
+        visited[start_idx] = true;
+        temp.add(list.get(start_idx));
+
+        for (int i = 1; i < list.size() - 1; i++) {
+            temp.add(list.get(getIdx(visited)));
+        }
+
+        for (int i = 0; i < temp.size() - 1; i++) {
+            log("index: " + i + " Title: " + MusicSearcher.findDisplayName(this, temp.get(i)));
         }
 
         log("===========make RandomOrder=============");
@@ -265,10 +320,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             moveMusic(true);
 
             Intent intent = new Intent("com.example.service");
-            intent.putExtra("pos", music_order[position]);
+            intent.putExtra("id", list.get(position));
             sendBroadcast(intent);
 
-            Notification noti = makeNotification(list.get(music_order[position]));
+            Notification noti = makeNotification(list.get(position));
             startForeground(1, noti);
         }
     }
@@ -288,23 +343,23 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void moveMusic(boolean next) {
         if (next) {
             log("next music.....");
-            position = (position + 1) % music_order.length;
+            position = (position + 1) % (list.size() - 1);
         } else {
             log("previous music.....");
             if (position - 1 < 0)
-                position = music_order.length - 1;
+                position = (list.size() - 2);
             else
-                position = (position - 1) % music_order.length;
+                position = (position - 1) % (list.size() - 1);
         }
         log("-----------------------------Position: " + position + "----------------------------------");
 
         saveFileManager.savePoint(position);
-        currentMusic = list.get(music_order[position]);
+        currentMusic = list.get(position);
 
-        Notification noti = makeNotification(list.get(music_order[position]));
+        Notification noti = makeNotification(list.get(position));
         startForeground(1, noti);
 
-        String path = MusicSearcher.findPath(this, list.get(music_order[position]));
+        String path = MusicSearcher.findPath(this, list.get(position));
         startMusic(path);
     }
 

@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
     TextView title, artist, duration;
-    ImageView image;
+    ImageView image, moveButton;
     private myPositionListener listener;
 
     public MusicHolder(@NonNull View itemView) {
@@ -21,6 +21,7 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
         artist = (TextView) itemView.findViewById(R.id.artist);
         image = (ImageView) itemView.findViewById(R.id.image);
         duration = (TextView)itemView.findViewById(R.id.duration);
+        moveButton = (ImageView)itemView.findViewById(R.id.moveButton);
 
         itemView.setOnClickListener(this);
     }
