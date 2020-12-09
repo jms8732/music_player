@@ -15,6 +15,7 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -22,23 +23,27 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
 import java.io.FileDescriptor;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
-public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener {
+public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener, ItemMoveCallback.ItemTouchHelperAdapter {
     private ArrayList<String> list;
     private Context context;
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
+    private onStartDragListener dragListener;
 
-    public MusicRecyclerAdapter(Context context, RecyclerView recyclerView) {
+    public MusicRecyclerAdapter(Context context, RecyclerView recyclerView, onStartDragListener dragListener) {
         this.context = context;
         this.recyclerView = recyclerView;
+        this.dragListener = dragListener;
     }
 
     public void setList(ArrayList<String> list) {
@@ -52,6 +57,29 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     }
 
+    @Override
+    public void onItemMove(int fromPos, int targetPos) {
+        Collections.swap(list, fromPos, targetPos);
+        notifyItemMoved(fromPos, targetPos);
+    }
+
+    @Override
+    public void onItemDismiss(int pos) {
+        list.remove(pos);
+        notifyItemRemoved(pos);
+    }
+
+    @Override
+    public void onFinishDrag(int actionState) {
+        if(actionState == ItemTouchHelper.ACTION_STATE_IDLE){
+            //이동이 끝난 후
+            Intent intent = new Intent(context,MusicService.class);
+            intent.putExtra("code",2);
+            intent.putStringArrayListExtra("list",list);
+
+            context.startService(intent);
+        }
+    }
 
     @NonNull
     @Override
@@ -72,26 +100,37 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof MusicHolder) {
             String id = list.get(position);
 
-            String title = MusicSearcher.findDisplayName(context,id);
-            String artist = MusicSearcher.findArtist(context,id);
-            String duration = convertDuration(MusicSearcher.findDuration(context,id));
-            int albumId=  MusicSearcher.findAlbumId(context,id);
+            String title = MusicSearcher.findDisplayName(context, id);
+            String artist = MusicSearcher.findArtist(context, id);
+            String duration = convertDuration(MusicSearcher.findDuration(context, id));
+            int albumId = MusicSearcher.findAlbumId(context, id);
 
             ((MusicHolder) holder).title.setText(title);
             ((MusicHolder) holder).artist.setText(artist);
             ((MusicHolder) holder).duration.setText(duration);
+            ((MusicHolder) holder).moveButton.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        Log.d("jms8732","Action down.........");
+                        dragListener.onStartDrag(holder);
+
+                    }else if(event.getAction() == MotionEvent.ACTION_UP){
+                        Log.d("jms8732","Action up.........");
+                    }
+                    return true;
+                }
+            });
 
             Glide.with(context)
                     .load(getAlbumart(albumId))
                     .fitCenter()
                     .placeholder(R.drawable.ic_launcher_foreground)
                     .into(((MusicHolder) holder).image);
-        } else {
-
         }
     }
 
@@ -101,15 +140,14 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             //마지막인 경우
             recyclerView.getLayoutManager().scrollToPosition(0);
         } else {
-           Intent sIntent = new Intent(context,MusicService.class);
-           sIntent.putExtra("data",list.get(position));
-           sIntent.putExtra("current",position);
-           sIntent.putExtra("code",1);
+            Intent sIntent = new Intent(context, MusicService.class);
+            sIntent.putExtra("data", list.get(position));
+            sIntent.putExtra("code", 1);
 
-           if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-               context.startForegroundService(sIntent);
-           else
-               context.startService(sIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                context.startForegroundService(sIntent);
+            else
+                context.startService(sIntent);
         }
     }
 
@@ -148,8 +186,8 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
         } catch (Exception e) {
         }
 
-        if(bm == null)
-            bm = BitmapFactory.decodeResource(context.getResources(),R.drawable.ic_launcher_foreground);
+        if (bm == null)
+            bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher_foreground);
 
         return bm;
     }
