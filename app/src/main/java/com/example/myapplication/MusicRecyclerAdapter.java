@@ -39,6 +39,7 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
     private RecyclerView recyclerView;
     private onStartDragListener dragListener;
+    private boolean drag;
 
     public MusicRecyclerAdapter(Context context, RecyclerView recyclerView, onStartDragListener dragListener) {
         this.context = context;
@@ -65,19 +66,36 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     @Override
     public void onItemDismiss(int pos) {
+        Log.d("jms8732","dismiss.....");
+        String tar = list.get(pos);
         list.remove(pos);
         notifyItemRemoved(pos);
+
+        Intent intent = new Intent("com.example.service");
+        intent.putStringArrayListExtra("list", list);
+        intent.putExtra("code",2);
+        intent.putExtra("target",tar);
+
+        context.sendBroadcast(intent);
     }
 
     @Override
     public void onFinishDrag(int actionState) {
-        if(actionState == ItemTouchHelper.ACTION_STATE_IDLE){
-            //이동이 끝난 후
-            Intent intent = new Intent(context,MusicService.class);
-            intent.putExtra("code",2);
-            intent.putStringArrayListExtra("list",list);
+        if(actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+            drag = true;
+        }else if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+            drag = false;
+        } else if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
+            Log.d("jms8732","finish..........");
+            if(drag){
+                Log.d("jms8732","drag.....");
+                //이동이 끝난 후
+                Intent intent = new Intent("com.example.service");
+                intent.putStringArrayListExtra("list", list);
+                intent.putExtra("code",1);
 
-            context.startService(intent);
+                context.sendBroadcast(intent);
+            }
         }
     }
 
@@ -116,11 +134,11 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                        Log.d("jms8732","Action down.........");
+                        Log.d("jms8732", "Action down.........");
                         dragListener.onStartDrag(holder);
 
-                    }else if(event.getAction() == MotionEvent.ACTION_UP){
-                        Log.d("jms8732","Action up.........");
+                    } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                        Log.d("jms8732", "Action up.........");
                     }
                     return true;
                 }

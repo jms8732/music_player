@@ -24,11 +24,7 @@ public class SaveFileManager {
         return prefs.getBoolean("orderStatus",true);
     }
 
-    public int loadPosition() {
-        return prefs.getInt("pos", -1);
-    }
-
-    public ArrayList<String> loadOrder() {
+    public ArrayList<String> loadShowList() {
         String order = prefs.getString("order", null);
 
         if(order == null)
@@ -45,6 +41,16 @@ public class SaveFileManager {
         return ret;
     }
 
+    public String loadId(){
+        return prefs.getString("id",null);
+    }
+
+    public void saveLastId(String id){
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("id",id);
+        editor.apply();
+    }
+
 
     public void saveLoopStatus(boolean loopStatus){
         SharedPreferences.Editor editor = prefs.edit();
@@ -58,17 +64,11 @@ public class SaveFileManager {
         editor.apply();
     }
 
-    public void savePoint(int position) {
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("pos", position);
-        editor.apply();
-    }
-
-    public void saveOrder(ArrayList<String> order) {
+    public void saveMusicList(ArrayList<String> showList) {
         SharedPreferences.Editor editor = prefs.edit();
         StringBuilder sb = new StringBuilder();
 
-        for(String id : order)
+        for(String id : showList)
             sb.append(id + " ");
 
         editor.putString("order", sb.toString().trim());

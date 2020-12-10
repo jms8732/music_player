@@ -77,6 +77,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (code == 1) {
                 boolean s = intent.getBooleanExtra("status", false);
                 changePlayButton(s);
+            } else if (code == 2) {
+                mService.pauseMusic();
+                belowMusicMenu.setVisibility(View.GONE);
             } else {
                 makeMusicView(id);
             }
@@ -104,13 +107,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode){
+        switch (requestCode) {
             case 101:
-                if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     log("granted....");
                     Intent intent = new Intent(this, MusicService.class);
                     bindService(intent, conn, BIND_AUTO_CREATE);
-                    registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
+                    registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
                 }
                 break;
         }
@@ -121,12 +124,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             Intent intent = new Intent(this, MusicService.class);
             bindService(intent, conn, BIND_AUTO_CREATE);
-            registerReceiver(serviceReceiver, new IntentFilter("com.example.service"));
-        }else
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},101);
+            registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
+        } else
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
 
         log("onCreate...");
     }
@@ -325,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Glide.with(this)
                 .load(getAlbumart(albumId))
                 .fitCenter()
-                .placeholder(R.drawable.ic_launcher_foreground)
+                .placeholder(R.drawable.album)
                 .into(music_image);
 
         changePlayButton(mService.isPlaying());
