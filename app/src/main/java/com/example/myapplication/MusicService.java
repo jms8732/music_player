@@ -61,11 +61,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                     Intent aIntent = new Intent("com.example.activity");
                     aIntent.putExtra("code", 2);
                     sendBroadcast(aIntent);
-                }else
-                    makeMusicOrder(currentMusic,orderStatus);
-            }
+                } else
+                    makeMusicOrder(currentMusic, orderStatus);
 
-            saveFileManager.saveMusicList(showMusicList);
+                log("target: " + tar);
+                saveFileManager.saveRemovedMusic(tar);
+            }
         }
     };
 
@@ -88,18 +89,18 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         orderStatus = saveFileManager.loadOrderStatus();
         loopStatus = saveFileManager.loadLoopStatus();
-        showMusicList = saveFileManager.loadShowList();
+        String removedMusic = saveFileManager.loadRemovedMusic();
         currentMusic = saveFileManager.loadId();
 
         if (showMusicList == null)
-            showMusicList = searchMusicPath();
+            showMusicList = searchMusicPath(removedMusic);
     }
 
 
     //안드로이드 내에 존재하는 파일들을 탐색하여 확장자 mp3를 가진 파일들을 찾는 메소드
-    private ArrayList<String> searchMusicPath() {
+    private ArrayList<String> searchMusicPath(String removedMusic) {
         ArrayList<String> list = new ArrayList<>();
-        Cursor cursor = MusicSearcher.findId(this);
+        Cursor cursor = MusicSearcher.findId(this, removedMusic);
 
         while (cursor != null && cursor.moveToNext()) {
             list.add(cursor.getString(0));
@@ -422,7 +423,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         Bitmap bitmap = getAlbumart(albumId);
 
         if (bitmap == null)
-            bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.album_black);
+            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.album_black);
 
         contentView.setImageViewBitmap(R.id.remoteView_image, bitmap);
 
