@@ -167,6 +167,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         manager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         recyclerView = (RecyclerView) findViewById(R.id.recycle_view);
+        recyclerView.addItemDecoration(new ItemDecoration());
+        recyclerView.setNestedScrollingEnabled(false);
 
         thumbnail_play = (ImageView) findViewById(R.id.play);
         thumbnail_play.setOnClickListener(this);
@@ -191,6 +193,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             adapter.setList(list);
 
             recyclerView.setAdapter(adapter);
+            recyclerView.setHasFixedSize(true);
+            recyclerView.setItemViewCacheSize(list.size());
+            recyclerView.setDrawingCacheEnabled(true);
+            recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
 
@@ -327,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         Glide.with(this)
                 .load(getAlbumart(albumId))
-                .fitCenter()
+                .override(200,200)
                 .placeholder(R.drawable.album)
                 .into(music_image);
 

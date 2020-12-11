@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.io.FileDescriptor;
 import java.util.ArrayList;
@@ -146,8 +147,9 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
 
             Glide.with(context)
                     .load(getAlbumart(albumId))
-                    .fitCenter()
-                    .placeholder(R.drawable.ic_launcher_foreground)
+                    .placeholder(R.drawable.album)
+                    .override(100,100)
+                    .thumbnail(0.1f)
                     .into(((MusicHolder) holder).image);
         }
     }
@@ -168,7 +170,6 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
                 context.startService(sIntent);
         }
     }
-
 
     //1000 millisec = 1sec;
     private String convertDuration(long duration) {
@@ -203,10 +204,6 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             }
         } catch (Exception e) {
         }
-
-        if (bm == null)
-            bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_launcher_foreground);
-
         return bm;
     }
 

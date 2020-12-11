@@ -4,9 +4,14 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 public class MusicSearcher {
     private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -15,10 +20,22 @@ public class MusicSearcher {
 
     }
 
-    public static Cursor findId(Context context) {
+    public static Cursor findId(Context context, String removed_Music) {
         String[] proj = new String[]{MediaStore.Audio.Media._ID};
-        String selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
-        String[] selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
+
+        String selection = null;
+        String[] selectionArgs = null;
+        if (removed_Music == null) {
+            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
+            selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
+        } else {
+            String [] temp = removed_Music.split(",");
+            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?" + " and "  + MediaStore.Audio.Media._ID + " not in (" + TextUtils.join(",", Collections.nCopies(temp.length,"?")) +")";
+
+            selectionArgs = new String[temp.length+1];
+            selectionArgs[0] = MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3");
+            System.arraycopy(temp,0,selectionArgs,1,temp.length);
+        }
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
@@ -32,7 +49,7 @@ public class MusicSearcher {
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
-        while(cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             return cursor.getString(0);
         }
         return null;
@@ -45,7 +62,7 @@ public class MusicSearcher {
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
-        while(cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             return cursor.getString(0);
         }
         return null;
@@ -58,7 +75,7 @@ public class MusicSearcher {
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
-        while(cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             return cursor.getInt(0);
         }
         return -1;
@@ -71,7 +88,7 @@ public class MusicSearcher {
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
-        while(cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             return cursor.getInt(0);
         }
         return -1;
@@ -84,7 +101,7 @@ public class MusicSearcher {
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
-        while(cursor.moveToNext()){
+        while (cursor.moveToNext()) {
             return cursor.getString(0);
         }
         return null;
