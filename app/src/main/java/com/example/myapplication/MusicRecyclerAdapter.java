@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener, ItemMoveCallback.ItemTouchHelperAdapter {
+public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements myPositionListener, ItemMoveCallback.ItemTouchHelperAdapter{
     private ArrayList<String> list;
     private Context context;
     private final int TYPE_MUSIC = 1, TYPE_LAST = 0;
@@ -119,38 +119,9 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof MusicHolder) {
-            String id = list.get(position);
-
-            String title = MusicSearcher.findDisplayName(context, id);
-            String artist = MusicSearcher.findArtist(context, id);
-            String duration = convertDuration(MusicSearcher.findDuration(context, id));
-            int albumId = MusicSearcher.findAlbumId(context, id);
-
-            ((MusicHolder) holder).title.setText(title);
-            ((MusicHolder) holder).artist.setText(artist);
-            ((MusicHolder) holder).duration.setText(duration);
-            ((MusicHolder) holder).moveButton.setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                        Log.d("jms8732", "Action down.........");
-                        dragListener.onStartDrag(holder);
-
-                    } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                        Log.d("jms8732", "Action up.........");
-                    }
-                    return true;
-                }
-            });
-
-            Glide.with(context)
-                    .load(getAlbumart(albumId))
-                    .placeholder(R.drawable.album)
-                    .override(100,100)
-                    .thumbnail(0.1f)
-                    .into(((MusicHolder) holder).image);
+            ((MusicHolder) holder).binding(context,list.get(position));
         }
     }
 
@@ -169,42 +140,6 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
             else
                 context.startService(sIntent);
         }
-    }
-
-    //1000 millisec = 1sec;
-    private String convertDuration(long duration) {
-        String ret = null;
-
-        long hour = (duration / 3600000);
-        long minute = (duration % 3600000) / 60000;
-        long sec = ((duration % 3600000) % 60000) / 1000;
-
-        if (hour > 0)
-            ret = String.format("%02d:%02d:%02d", hour, minute, sec);
-        else
-            ret = String.format("%02d:%02d", minute, sec);
-        return ret;
-    }
-
-    //mp3의 섬네일
-    public Bitmap getAlbumart(long album_id) {
-        Bitmap bm = null;
-        try {
-            final Uri sArtworkUri = Uri
-                    .parse("content://media/external/audio/albumart");
-
-            Uri uri = ContentUris.withAppendedId(sArtworkUri, album_id);
-
-            ParcelFileDescriptor pfd = context.getContentResolver()
-                    .openFileDescriptor(uri, "r");
-
-            if (pfd != null) {
-                FileDescriptor fd = pfd.getFileDescriptor();
-                bm = BitmapFactory.decodeFileDescriptor(fd);
-            }
-        } catch (Exception e) {
-        }
-        return bm;
     }
 
     @Override

@@ -22,9 +22,11 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.text.Layout;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -193,11 +195,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             adapter.setList(list);
 
             recyclerView.setAdapter(adapter);
+            recyclerView.setNestedScrollingEnabled(false);
+
             recyclerView.setHasFixedSize(true);
             recyclerView.setItemViewCacheSize(list.size());
             recyclerView.setDrawingCacheEnabled(true);
             recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+            PreCachingLayoutManager pclm = new PreCachingLayoutManager(this,list.size());
+            recyclerView.setLayoutManager(pclm);
         }
 
         setLayout(id);
