@@ -17,6 +17,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:id="@+id/recycler_parent"
         tools:ignore="MissingConstraints">
 
         <androidx.recyclerview.widget.RecyclerView
@@ -28,94 +29,91 @@
             android:scrollbars="vertical" />
     </RelativeLayout>
 
-    <LinearLayout
+
+    <include
+        android:id="@+id/targetView"
+        layout="@layout/music_detail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:orientation="vertical">
+        android:layout_weight="2" />
 
-        <include
-            android:id="@+id/targetView"
-            layout="@layout/music_detail"
+    <com.skydoves.transformationlayout.TransformationLayout
+        android:id="@+id/transformation_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        app:transformation_direction="auto"
+        app:transformation_duration="600"
+        app:transformation_fitMode="auto"
+        app:transformation_pathMode="arc"
+        app:transformation_targetView="@id/targetView">
+
+
+        <LinearLayout
+            android:id="@+id/belowMusicMenu"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2" />
-
-        <com.skydoves.transformationlayout.TransformationLayout
-            android:id="@+id/transformation_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:transformation_direction="auto"
-            app:transformation_duration="600"
-            app:transformation_fitMode="auto"
-            app:transformation_pathMode="arc"
-            app:transformation_targetView="@id/targetView">
-
+            android:layout_height="40dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            >
 
             <LinearLayout
-                android:id="@+id/belowMusicMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:background="@color/bright_gray"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="3dp">
+
+                <ImageView
+                    android:id="@+id/play"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/play" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="70dp"
-                    android:background="@color/bright_gray"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="3dp">
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="3"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/play"
-                        android:layout_width="0dp"
-                        android:layout_height="30dp"
-                        android:layout_weight="1"
-                        android:scaleType="centerInside"
-                        android:src="@drawable/play" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/thumbnail_title"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="3"
+                        android:layout_gravity="center"
+                        android:ellipsize="marquee"
                         android:gravity="center"
-                        android:orientation="vertical">
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:text="test"
+                        android:textSize="14dp" />
 
-                        <TextView
-                            android:id="@+id/thumbnail_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:ellipsize="marquee"
-                            android:gravity="center"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:singleLine="true"
-                            android:text="test"
-                            android:textSize="14dp" />
-
-                        <TextView
-                            android:id="@+id/thumbnail_artist"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:ellipsize="marquee"
-                            android:singleLine="true"
-                            android:text="artist"
-                            android:textSize="10dp" />
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/more"
-                        android:layout_width="0dp"
-                        android:layout_height="30dp"
-                        android:layout_weight="1"
-                        android:scaleType="centerInside"
-                        android:src="@android:drawable/ic_menu_more" />
-
+                    <TextView
+                        android:id="@+id/thumbnail_artist"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:ellipsize="marquee"
+                        android:singleLine="true"
+                        android:text="artist"
+                        android:textSize="10dp" />
                 </LinearLayout>
-            </LinearLayout>
 
-        </com.skydoves.transformationlayout.TransformationLayout>
-    </LinearLayout>
+                <ImageView
+                    android:id="@+id/more"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_more" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+    </com.skydoves.transformationlayout.TransformationLayout>
 </RelativeLayout>

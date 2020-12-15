@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentUris;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -21,6 +23,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.os.Parcelable;
+import android.os.PersistableBundle;
 import android.os.SystemClock;
 import android.text.Layout;
 import android.util.Log;
@@ -51,6 +55,8 @@ import com.skydoves.transformationlayout.TransformationLayout;
 
 import java.io.FileDescriptor;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, onStartDragListener {
     private RecyclerView recyclerView;
@@ -66,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicService mService;
     private Handler handler = null;
     private MusicThread thread;
-    private boolean isService;
+    private boolean isService, isCreate;
     private final int SEND_INFO = 1, SEND_STOP = 2;
     private ItemTouchHelper touchHelper = null;
 
@@ -97,13 +103,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             log("Service connected...");
             String id = mService.getId();
-            init(id);
+            if (isCreate) { //액티비티가 새롭게 생성될 경우
+                init(id);
+                isCreate = false;
+            }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             isService = false;
-            log("unconnected..");
+            log("Service is disconnected...");
         }
     };
 
@@ -125,26 +134,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            Intent intent = new Intent(this, MusicService.class);
-            bindService(intent, conn, BIND_AUTO_CREATE);
-            registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
-        } else
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
-
         log("onCreate...");
+        isCreate = true;
+
+        if(savedInstanceState != null)
+            log("is not null.........");
     }
+
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         log("onDestroy...");
-
-        unregisterReceiver(serviceReceiver);
-        handler.sendEmptyMessage(SEND_STOP);
+        isCreate = false;
     }
 
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("aa", "aaaa");
+        log("onSaveInstanceState...");
+    }
 
     //뷰 세팅
     private void init(String id) {
@@ -169,7 +179,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         manager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         recyclerView = (RecyclerView) findViewById(R.id.recycle_view);
-        recyclerView.addItemDecoration(new ItemDecoration());
+        //recyclerView.addItemDecoration(new ItemDecoration());
         recyclerView.setNestedScrollingEnabled(false);
 
         thumbnail_play = (ImageView) findViewById(R.id.play);
@@ -189,24 +199,81 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         ArrayList<String> list = mService.getMusicList();
         touchHelper.attachToRecyclerView(recyclerView);
+        status_show.setVisibility(View.GONE);
+        adapter.setList(list);
 
-        if (list != null) {
-            status_show.setVisibility(View.GONE);
-            adapter.setList(list);
+        recyclerView.setAdapter(adapter);
+        recyclerView.setNestedScrollingEnabled(false);
 
-            recyclerView.setAdapter(adapter);
-            recyclerView.setNestedScrollingEnabled(false);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemViewCacheSize(list.size());
+        recyclerView.setDrawingCacheEnabled(true);
+        recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
 
-            recyclerView.setHasFixedSize(true);
-            recyclerView.setItemViewCacheSize(list.size());
-            recyclerView.setDrawingCacheEnabled(true);
-            recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+        PreCachingLayoutManager pclm = new PreCachingLayoutManager(this, list.size());
+        recyclerView.setLayoutManager(pclm);
 
-            PreCachingLayoutManager pclm = new PreCachingLayoutManager(this,list.size());
-            recyclerView.setLayoutManager(pclm);
-        }
 
         setLayout(id);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        log("start....");
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            Intent intent = new Intent(this, MusicService.class);
+            bindService(intent, conn, 0);
+            startService(intent);
+            registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
+        } else
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        log("onRestart...");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        log("onResume...");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        log("onPause...");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        log("onStop....");
+
+        unregisterReceiver(serviceReceiver);
+        handler.sendEmptyMessage(SEND_STOP);
+
+        ActivityManager am = (ActivityManager) this.getSystemService(ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> l = am.getRunningServices(50);
+        Iterator<ActivityManager.RunningServiceInfo> i = l.iterator();
+        while (i.hasNext()) {
+            ActivityManager.RunningServiceInfo runningServiceInfo = i
+                    .next();
+
+            if (runningServiceInfo.service.getClassName().equals(MusicService.class.getName())) {
+                if (!runningServiceInfo.foreground) {
+                    log("stop foreground in activity...");
+                    Intent intent = new Intent(this, MusicService.class);
+                    stopService(intent);
+                    unbindService(conn);
+                    break;
+                }
+            }
+        }
     }
 
     @Override
@@ -267,8 +334,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             loop.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.loop_deactivate, null));
 
         current_duration = (TextView) music_detail.findViewById(R.id.current_duration);
-        current_duration.setText(convertDuration(0));
-
         total_duration = (TextView) music_detail.findViewById(R.id.total_duration);
         music_image = (ImageView) music_detail.findViewById(R.id.music_image);
         speaker = (SeekBar) music_detail.findViewById(R.id.speaker);
@@ -334,12 +399,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         music_title.setText(title);
         music_artist.setText(artist);
         total_duration.setText(convertDuration(duration));
+        current_duration.setText(convertDuration(mService.getCurrentProgress()));
 
-        music_progress.setMax(duration);
+        music_progress.setMax(MusicSearcher.findDuration(this, id));
+        music_progress.setProgress(mService.getCurrentProgress());
 
         Glide.with(this)
                 .load(getAlbumart(albumId))
-                .override(200,200)
+                .override(200, 200)
                 .placeholder(R.drawable.album)
                 .into(music_image);
 
@@ -368,12 +435,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent.putExtra("code", 1);
             intent.putExtra("data", mService.getId());
 
+            bindService(intent, conn, 0);
+
             if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
                 startForegroundService(intent);
             } else
                 startService(intent);
 
-            changePlayButton(!mService.isPlaying());
         } else if (v == belowMusicMenu) {
             if (!transformationLayout.isTransformed()) {
                 transformationLayout.startTransform();

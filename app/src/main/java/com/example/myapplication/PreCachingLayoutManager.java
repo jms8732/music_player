@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class PreCachingLayoutManager extends LinearLayoutManager {
     private Context context;
-    private RecyclerView recyclerView;
     private int size, height;
 
     public PreCachingLayoutManager(Context context , int size) {
@@ -24,6 +23,7 @@ public class PreCachingLayoutManager extends LinearLayoutManager {
 
     @Override
     protected void calculateExtraLayoutSpace(@NonNull RecyclerView.State state, @NonNull int[] extraLayoutSpace) {
+
         if(getOrientation() == LinearLayoutManager.VERTICAL){
             extraLayoutSpace[0] = height * size;
             extraLayoutSpace[1] = height * size;

@@ -25,8 +25,8 @@ public class SaveFileManager {
         return prefs.getBoolean("orderStatus", true);
     }
 
-    public String loadRemovedMusic() {
-        return prefs.getString("removed", null);
+    public String loadMusicList() {
+        return prefs.getString("musicList", null);
     }
 
     public String loadId() {
@@ -52,10 +52,14 @@ public class SaveFileManager {
         editor.apply();
     }
 
-    public void saveRemovedMusic(String removed) {
+    public void saveMusicList(ArrayList<String> musicList) {
         SharedPreferences.Editor editor = prefs.edit();
-        String basic = loadRemovedMusic(); //기존에 있는 값을 가져옴
-        editor.putString("removed", removeDuplicate(basic,removed));
+        StringBuilder sb=  new StringBuilder();
+
+        for(int i =0 ; i  < musicList.size()-1 ; i++)
+            sb.append(musicList.get(i) + " ");
+
+        editor.putString("musicList",sb.toString().trim());
         editor.apply();
     }
 
