@@ -46,6 +46,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private String[] musicOrder;
     private boolean orderStatus, loopStatus;
     private SaveFileManager saveFileManager;
+    private NotificationManager manager;
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -55,18 +56,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             int code = intent.getIntExtra("code", -1);
 
             if (code == 1) {
-                makeMusicOrder(currentMusic, orderStatus);
+
             } else if (code == 2) {
                 if (tar != null && tar.equals(currentMusic)) {
                     Intent aIntent = new Intent("com.example.activity");
                     aIntent.putExtra("code", 2);
                     sendBroadcast(aIntent);
-                } else
-                    makeMusicOrder(currentMusic, orderStatus);
-
-                log("target: " + tar);
-                saveFileManager.saveRemovedMusic(tar);
+                }
             }
+            makeMusicOrder(currentMusic, orderStatus);
         }
     };
 
@@ -85,27 +83,38 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (saveFileManager == null)
             saveFileManager = new SaveFileManager(this);
 
+        if(manager == null)
+            manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
         registerReceiver(receiver, new IntentFilter("com.example.service"));
 
         orderStatus = saveFileManager.loadOrderStatus();
         loopStatus = saveFileManager.loadLoopStatus();
-        String removedMusic = saveFileManager.loadRemovedMusic();
         currentMusic = saveFileManager.loadId();
 
         if (showMusicList == null)
-            showMusicList = searchMusicPath(removedMusic);
+            showMusicList = searchMusicPath();
     }
 
 
     //안드로이드 내에 존재하는 파일들을 탐색하여 확장자 mp3를 가진 파일들을 찾는 메소드
-    private ArrayList<String> searchMusicPath(String removedMusic) {
+    private ArrayList<String> searchMusicPath() {
         ArrayList<String> list = new ArrayList<>();
-        Cursor cursor = MusicSearcher.findId(this, removedMusic);
+        String previousMusicList = saveFileManager.loadMusicList();
 
-        while (cursor != null && cursor.moveToNext()) {
-            list.add(cursor.getString(0));
+        if(previousMusicList == null) {
+            Cursor cursor = MusicSearcher.findId(this);
+
+            while (cursor != null && cursor.moveToNext()) {
+                list.add(cursor.getString(0));
+            }
+        }else{
+            StringTokenizer st = new StringTokenizer(previousMusicList);
+
+            while(st.hasMoreElements()){
+                list.add(st.nextToken());
+            }
         }
-
         //마지막에 '맨 위로' 처리
         list.add(null);
 
@@ -122,7 +131,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         super.onDestroy();
 
         if (mp != null) {
-            mp.stop();
             mp.release();
         }
 
@@ -183,31 +191,37 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                     //현재 노래가 진행될 경우
                     pauseMusic();
                     bIntent.putExtra("status", false);
+
+                    sendBroadcast(bIntent);
                 } else {
+                    Notification noti = makeNotification(chooseId);
+                    startForeground(1, noti);
                     if (musicOrder == null) {
                         makeMusicOrder(chooseId, orderStatus);
                         startMusic(MusicSearcher.findPath(this, currentMusic));
-                    } else
+                    } else {
                         restartMusic();
+                        bIntent.putExtra("status", true);
+                        sendBroadcast(bIntent);
 
-                    Notification noti = makeNotification(chooseId);
-                    startForeground(1, noti);
-                    bIntent.putExtra("status", true);
+                    }
                 }
-
-                sendBroadcast(bIntent);
             }
         } else if (code == 3) {
             //서비스 종료
-            mp.stop();
-            mp.release();
-            mp = null;
-            stopSelf();
+            log("stopForeground...");
+            stopForeground(true);
+            if(mp.isPlaying())
+                mp.pause();
 
-            return START_NOT_STICKY;
+            Intent bIntent = new Intent("com.example.activity");
+            bIntent.putExtra("code", 1);
+            bIntent.putExtra("status", false);
+
+            sendBroadcast(bIntent);
+            stopSelf();
         }
         return START_REDELIVER_INTENT;
-
     }
 
     //음악 순서를 만드는 메소드
@@ -228,6 +242,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         orderStatus = order;
         saveFileManager.saveOrderStatus(orderStatus);
         saveFileManager.saveLastId(current);
+        saveFileManager.saveMusicList(showMusicList);
     }
 
     public boolean getOrderStatus() {
@@ -367,7 +382,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
 
     private Notification makeNotification(String id) {
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             String channelId = "MusicChannel";

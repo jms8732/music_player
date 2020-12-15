@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.text.PrecomputedTextCompat;
 import androidx.core.widget.TextViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,7 +27,7 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
     ImageView image, moveButton;
     private myPositionListener listener;
 
-    public MusicHolder(@NonNull View itemView ) {
+    public MusicHolder(@NonNull View itemView, final onStartDragListener dragListener) {
         super(itemView);
 
         title = (TextView) itemView.findViewById(R.id.title);
@@ -34,6 +35,16 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
         image = (ImageView) itemView.findViewById(R.id.image);
         duration = (TextView) itemView.findViewById(R.id.duration);
         moveButton = (ImageView) itemView.findViewById(R.id.moveButton);
+        moveButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    dragListener.onStartDrag(MusicHolder.this);
+                }
+                return true;
+            }
+        });
+
 
         itemView.setOnClickListener(this);
 
@@ -57,22 +68,12 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
         title.setText(t);
         artist.setText(a);
         duration.setText(d);
-    /*    moveButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    Log.d("jms8732", "Action down.........");
-                    dragListener.onStartDrag(holder);
-                }
-                return true;
-            }
-        });*/
-        Glide.with(context)
-                .load(getAlbumart(context, albumId))
-                .placeholder(R.drawable.album)
-                .override(50, 50)
-                .thumbnail(0.1f)
-                .into(image);
+
+        Bitmap bm = getAlbumart(context, albumId);
+        if (bm == null)
+            image.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.album, null));
+        else
+            image.setImageBitmap(bm);
     }
 
     //1000 millisec = 1sec;
@@ -108,6 +109,7 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
             }
         } catch (Exception e) {
         }
+
         return bm;
     }
 }

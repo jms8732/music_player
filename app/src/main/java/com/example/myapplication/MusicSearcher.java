@@ -20,22 +20,14 @@ public class MusicSearcher {
 
     }
 
-    public static Cursor findId(Context context, String removed_Music) {
+    public static Cursor findId(Context context) {
         String[] proj = new String[]{MediaStore.Audio.Media._ID};
 
         String selection = null;
         String[] selectionArgs = null;
-        if (removed_Music == null) {
-            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
-            selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
-        } else {
-            String [] temp = removed_Music.split(",");
-            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?" + " and "  + MediaStore.Audio.Media._ID + " not in (" + TextUtils.join(",", Collections.nCopies(temp.length,"?")) +")";
+        selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
+        selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
 
-            selectionArgs = new String[temp.length+1];
-            selectionArgs[0] = MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3");
-            System.arraycopy(temp,0,selectionArgs,1,temp.length);
-        }
 
         Cursor cursor = context.getContentResolver().query(uri, proj, selection, selectionArgs, null);
 
