@@ -103,18 +103,15 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-      //  Log.d("jms8732","==============onCreateViewHolder========");
         if (viewType == TYPE_MUSIC) {
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.music_view, parent, false);
             MusicHolder holder = new MusicHolder(view, dragListener);
             holder.setListener(this);
-
             return holder;
         } else {
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.music_last_view, parent, false);
             LastHolder holder = new LastHolder(view);
             holder.setListener(this);
-
             return holder;
         }
     }
@@ -122,10 +119,11 @@ public class MusicRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof MusicHolder) {
-           // Log.d("jms8732","===============onBindViewHolder=============");
+         //  Log.d("jms8732","===============onBindViewHolder (" +  position + ")=============");
             ((MusicHolder) holder).binding(context,list.get(position));
         }
     }
+
 
     @Override
     public void getPosition(int position) {

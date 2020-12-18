@@ -23,6 +23,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.Parcelable;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -47,6 +48,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private boolean orderStatus, loopStatus;
     private SaveFileManager saveFileManager;
     private NotificationManager manager;
+    private Parcelable test;
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -67,6 +69,14 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             makeMusicOrder(currentMusic, orderStatus);
         }
     };
+
+    public void setRecyclerview(Parcelable test){
+        this.test =test;
+    }
+
+    public Parcelable getTest() {
+        return test;
+    }
 
     @Override
     public void onCreate() {
@@ -135,6 +145,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         }
 
         unregisterReceiver(receiver);
+        MainActivity.recyclerView = null;
         log("Service onDestroy....");
     }
 

@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:text="No mp3 Files"
+        android:background="@color/colorAccent"
         android:textSize="25dp" />
 
     <RelativeLayout
