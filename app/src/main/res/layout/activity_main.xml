@@ -1,25 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-
-    <TextView
-        android:id="@+id/status_show"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="No mp3 Files"
-        android:background="@color/colorAccent"
-        android:textSize="25dp" />
-
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:id="@+id/recycler_parent"
-        tools:ignore="MissingConstraints">
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintVertical_weight="5"
+        app:layout_constraintBottom_toTopOf="@+id/transformation_layout"
+        app:layout_constraintTop_toTopOf="parent">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycle_view"
@@ -27,7 +19,8 @@
             android:layout_height="wrap_content"
             android:scrollbarThumbVertical="@drawable/scrollbar_thumb"
             android:scrollbarTrackVertical="@color/bright_gray"
-            android:scrollbars="vertical" />
+            android:scrollbars="vertical"
+            />
     </RelativeLayout>
 
 
@@ -43,18 +36,22 @@
         android:id="@+id/transformation_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        app:layout_constraintTop_toBottomOf="@+id/recycler_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_weight="1"
         app:transformation_direction="auto"
         app:transformation_duration="600"
         app:transformation_fitMode="auto"
         app:transformation_pathMode="arc"
-        app:transformation_targetView="@id/targetView">
+        app:layout_constraintVertical_chainStyle="spread"
+        app:transformation_targetView="@id/targetView"
+        tools:ignore="MissingConstraints">
 
 
         <LinearLayout
             android:id="@+id/belowMusicMenu"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone"
             >
@@ -117,4 +114,4 @@
         </LinearLayout>
 
     </com.skydoves.transformationlayout.TransformationLayout>
-</RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
