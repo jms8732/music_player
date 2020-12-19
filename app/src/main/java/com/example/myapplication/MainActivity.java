@@ -62,7 +62,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, onStartDragListener {
     public static RecyclerView recyclerView;
-    private TextView status_show, thumbnail_title, thumbnail_artist, music_title, music_artist, current_duration, total_duration;
+    private TextView thumbnail_title, thumbnail_artist, music_title, music_artist, current_duration, total_duration;
     private ImageView thumbnail_play, play, music_image, fast_rewind, fast_forward, repeat, loop;
     private MusicRecyclerAdapter adapter;
     private LinearLayout belowMusicMenu;
@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String id = intent.getStringExtra("id");
             int code = intent.getIntExtra("code", -1);
 
+            log("code : " + code);
             if (code == 1) {
                 boolean s = intent.getBooleanExtra("status", false);
                 changePlayButton(s);
@@ -136,7 +137,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         log("onCreate...");
-        log("savedInstanceState: " + savedInstanceState);
+        registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
+
         isCreate = true;
     }
 
@@ -146,15 +148,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onDestroy();
         log("onDestroy...");
         isCreate = false;
+        unregisterReceiver(serviceReceiver);
     }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString("aa", "aaaa");
-        log("onSaveInstanceState...");
-    }
-
     //뷰 세팅
     private void init(String id) {
         handler = new Handler() {
@@ -180,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         thumbnail_play = (ImageView) findViewById(R.id.play);
         thumbnail_play.setOnClickListener(this);
 
-        status_show = (TextView) findViewById(R.id.status_show);
         thumbnail_title = (TextView) findViewById(R.id.thumbnail_title);
         thumbnail_artist = (TextView) findViewById(R.id.thumbnail_artist);
         belowMusicMenu = (LinearLayout) findViewById(R.id.belowMusicMenu);
@@ -201,7 +195,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             ArrayList<String> list = mService.getMusicList();
             touchHelper.attachToRecyclerView(recyclerView);
-            status_show.setVisibility(View.GONE);
             adapter.setList(list);
 
             recyclerView.setAdapter(adapter);
@@ -219,7 +212,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //todo 개선 필
             ViewGroup vg = (ViewGroup)recyclerView.getParent();
             vg.removeView(recyclerView);
-            status_show.setVisibility(View.GONE);
             recycler_parent.addView(recyclerView);
         }
         setLayout(id);
@@ -234,7 +226,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Intent intent = new Intent(this, MusicService.class);
             bindService(intent, conn, 0);
             startService(intent);
-            registerReceiver(serviceReceiver, new IntentFilter("com.example.activity"));
         } else
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
     }
@@ -262,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onStop();
         log("onStop....");
 
-        unregisterReceiver(serviceReceiver);
+
         handler.sendEmptyMessage(SEND_STOP);
 
         if (isServiceAlive()) {
@@ -299,14 +290,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         int vol = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            manager.setStreamVolume(AudioManager.STREAM_MUSIC, vol - 1, AudioManager.FLAG_PLAY_SOUND);
-        } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            manager.setStreamVolume(AudioManager.STREAM_MUSIC, vol + 1, AudioManager.FLAG_PLAY_SOUND);
+        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN | keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+            if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
+                vol -=1;
+            else
+                vol += 1;
+
+            if(vol >= 0 && vol <= manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)){
+                manager.setStreamVolume(AudioManager.STREAM_MUSIC,vol,AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
+                speaker.setProgress(vol);
+            }
+
+            return true;
         }
 
-        vol = manager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        speaker.setProgress(vol);
         return super.onKeyDown(keyCode, event);
     }
 
@@ -378,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                manager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, AudioManager.FLAG_PLAY_SOUND);
+                manager.setStreamVolume(AudioManager.STREAM_MUSIC, progress,AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
             }
 
             @Override

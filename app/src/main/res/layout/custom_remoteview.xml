@@ -1,89 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/relative"
     android:layout_width="match_parent"
-    android:layout_height="75dp">
+    android:background="@android:color/black"
+    android:layout_height="150dp">
 
     <ImageView
         android:id="@+id/remoteView_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
-        android:layout_width="@dimen/music_thumnail_width"
-        android:layout_height="@dimen/music_thumnail_height"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:scaleType="centerCrop" />
+        android:layout_marginRight="20dp"
+        android:adjustViewBounds="true"
+        android:src="@drawable/album" />
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/remoteView_image"
         android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/remoteView_image"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/remoteView_title"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:ellipsize="end"
-            android:text="title"
-            android:ems="7"
+            android:ems="15"
             android:singleLine="true"
+            android:text="title"
+            android:textColor="@android:color/white"
             android:textSize="13dp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/remoteView_artist"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ems="7"
-            android:singleLine="true"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="5dp"
             android:ellipsize="end"
-            android:textSize="@dimen/music_artist"
+            android:ems="15"
+            android:textColor="@android:color/white"
+            android:singleLine="true"
             android:text="artist"
-            />
+            android:textSize="@dimen/music_artist" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginTop="15dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/remoteView_fast_rewind"
+                android:layout_width="0dp"
+                android:layout_height="20dp"
+                android:layout_weight="2"
+                android:src="@drawable/remote_fast_rewind" />
+
+            <ImageView
+                android:id="@+id/remoteView_play"
+                android:layout_width="0dp"
+                android:layout_height="20dp"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_weight="2"
+                android:src="@drawable/remote_play" />
+
+            <ImageView
+                android:id="@+id/remoteView_fast_forward"
+                android:layout_width="0dp"
+                android:layout_height="20dp"
+                android:layout_weight="2"
+                android:src="@drawable/remote_fast_forward" />
+
+            <ImageView
+                android:id="@+id/remoteView_close"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="20dp"
+                android:layout_weight="2"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/close_white" />
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:layout_marginRight="15dp">
-
-        <ImageView
-            android:id="@+id/remoteView_fast_rewind"
-            android:layout_width="0dp"
-            android:layout_height="20dp"
-            android:layout_weight="2"
-            android:src="@drawable/fast_rewind" />
-
-        <ImageView
-            android:id="@+id/remoteView_play"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_weight="2"
-            android:src="@drawable/play" />
-
-        <ImageView
-            android:id="@+id/remoteView_fast_forward"
-            android:layout_width="0dp"
-            android:layout_height="20dp"
-            android:layout_weight="2"
-            android:src="@drawable/fast_forward" />
-
-        <ImageView
-            android:id="@+id/remoteView_close"
-            android:layout_width="0dp"
-            android:layout_height="25dp"
-            android:layout_weight="2"
-            android:layout_marginLeft="10dp"
-            android:scaleType="centerInside"
-            android:background="@android:color/transparent"
-            android:src="@drawable/close"
-            />
-    </LinearLayout>
-
 
 </RelativeLayout>

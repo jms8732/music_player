@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -31,10 +32,12 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -149,6 +152,18 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("Service onDestroy....");
     }
 
+    private boolean checkActivityAlive(){
+        ActivityManager activityManager = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
+
+        for (ActivityManager.RunningTaskInfo task : tasks) {
+            if (getPackageName().equalsIgnoreCase(task.baseActivity.getPackageName()))
+                return true;
+        }
+
+        return false;
+    }
+
     @Override
     public void onPrepared(MediaPlayer mp) {
         //음악이 준비된 상태라면
@@ -230,7 +245,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             bIntent.putExtra("status", false);
 
             sendBroadcast(bIntent);
-            stopSelf();
+
+            if(!checkActivityAlive()){
+                //현재 액티비티가 살아있지 않는 경우
+                stopSelf();
+            }
         }
         return START_REDELIVER_INTENT;
     }
@@ -445,12 +464,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         contentView.setTextViewText(R.id.remoteView_title, title);
         contentView.setTextViewText(R.id.remoteView_artist, artist);
 
-        Bitmap bitmap = getAlbumart(albumId);
 
-        if (bitmap == null)
-            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.album_black);
-
-        contentView.setImageViewBitmap(R.id.remoteView_image, bitmap);
+        Bitmap bm = getAlbumart(albumId);
+        if (bm == null)
+            contentView.setImageViewResource(R.id.remoteView_image,R.drawable.album_white);
+        else
+            contentView.setImageViewBitmap(R.id.remoteView_image, bm);
 
 
         Intent cIntent = new Intent(this, MusicService.class);
