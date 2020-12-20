@@ -51,7 +51,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private boolean orderStatus, loopStatus;
     private SaveFileManager saveFileManager;
     private NotificationManager manager;
-    private Parcelable test;
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -61,25 +60,58 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             int code = intent.getIntExtra("code", -1);
 
             if (code == 1) {
-
+                //드래그가 끝난 후
+                makeMusicOrder(currentMusic, orderStatus);
             } else if (code == 2) {
+                //삭제가 끝난 후
                 if (tar != null && tar.equals(currentMusic)) {
                     Intent aIntent = new Intent("com.example.activity");
-                    aIntent.putExtra("code", 2);
+                    aIntent.putExtra("code", 3);
                     sendBroadcast(aIntent);
+
+                    saveFileManager.saveMusicList(showMusicList);
                 }
             }
-            makeMusicOrder(currentMusic, orderStatus);
         }
     };
 
-    public void setRecyclerview(Parcelable test){
-        this.test =test;
-    }
+    private BroadcastReceiver remote_receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int code = intent.getIntExtra("code", -1);
 
-    public Parcelable getTest() {
-        return test;
-    }
+            log("Code: " + code);
+            if (code == -1) {
+
+            }
+            if (code == 1) {
+                //remote view의 플레이 버튼 클릭
+                log("play.......");
+                if(mp.isPlaying()){
+                    pauseMusic();
+                }else
+                    restartMusic();
+            } else if(code == 2  || code == 4){
+                //2 는 이전 곡, 4 는 다음 곡 선택
+                boolean check = true;
+                if(code == 2)
+                    check = false;
+
+                moveMusic(check);
+            } else if (code == 3) {
+                log("stopForeground...");
+                if (mp.isPlaying())
+                    pauseMusic();
+
+                stopForeground(true);
+
+                if (!checkActivityAlive()) {
+                    //현재 액티비티가 살아있지 않는 경우
+                    stopSelf();
+                }
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -96,10 +128,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (saveFileManager == null)
             saveFileManager = new SaveFileManager(this);
 
-        if(manager == null)
+        if (manager == null)
             manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         registerReceiver(receiver, new IntentFilter("com.example.service"));
+        registerReceiver(remote_receiver, new IntentFilter("com.example.remote"));
 
         orderStatus = saveFileManager.loadOrderStatus();
         loopStatus = saveFileManager.loadLoopStatus();
@@ -115,16 +148,16 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         ArrayList<String> list = new ArrayList<>();
         String previousMusicList = saveFileManager.loadMusicList();
 
-        if(previousMusicList == null) {
+        if (previousMusicList == null) {
             Cursor cursor = MusicSearcher.findId(this);
 
             while (cursor != null && cursor.moveToNext()) {
                 list.add(cursor.getString(0));
             }
-        }else{
+        } else {
             StringTokenizer st = new StringTokenizer(previousMusicList);
 
-            while(st.hasMoreElements()){
+            while (st.hasMoreElements()) {
                 list.add(st.nextToken());
             }
         }
@@ -148,12 +181,13 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         }
 
         unregisterReceiver(receiver);
+        unregisterReceiver(remote_receiver);
         MainActivity.recyclerView = null;
         log("Service onDestroy....");
     }
 
-    private boolean checkActivityAlive(){
-        ActivityManager activityManager = (ActivityManager)getSystemService(Context.ACTIVITY_SERVICE);
+    private boolean checkActivityAlive() {
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
 
         for (ActivityManager.RunningTaskInfo task : tasks) {
@@ -172,7 +206,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         Intent intent = new Intent("com.example.activity");
         intent.putExtra("id", musicOrder[position]);
+        intent.putExtra("code",0);
         sendBroadcast(intent);
+
+        Notification noti = makeNotification(currentMusic);
+        startForeground(1,noti);
     }
 
     @Override
@@ -203,52 +241,22 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 currentMusic = chooseId;
 
                 makeMusicOrder(chooseId, orderStatus);
-
-                Notification noti = makeNotification(chooseId);
                 String path = MusicSearcher.findPath(this, chooseId);
-                startForeground(1, noti);
 
                 startMusic(path);
             } else {
                 //같은 경우,
-                Intent bIntent = new Intent("com.example.activity");
-                bIntent.putExtra("code", 1);
                 if (mp.isPlaying()) {
                     //현재 노래가 진행될 경우
                     pauseMusic();
-                    bIntent.putExtra("status", false);
-
-                    sendBroadcast(bIntent);
                 } else {
-                    Notification noti = makeNotification(chooseId);
-                    startForeground(1, noti);
                     if (musicOrder == null) {
                         makeMusicOrder(chooseId, orderStatus);
                         startMusic(MusicSearcher.findPath(this, currentMusic));
                     } else {
                         restartMusic();
-                        bIntent.putExtra("status", true);
-                        sendBroadcast(bIntent);
-
                     }
                 }
-            }
-        } else if (code == 3) {
-            //서비스 종료
-            log("stopForeground...");
-            stopForeground(true);
-            if(mp.isPlaying())
-                mp.pause();
-
-            Intent bIntent = new Intent("com.example.activity");
-            bIntent.putExtra("code", 1);
-            bIntent.putExtra("status", false);
-
-            sendBroadcast(bIntent);
-
-            if(!checkActivityAlive()){
-                //현재 액티비티가 살아있지 않는 경우
-                stopSelf();
             }
         }
         return START_REDELIVER_INTENT;
@@ -333,6 +341,13 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void restartMusic() {
         log("restart music...");
         mp.start();
+
+        Notification noti = makeNotification(currentMusic);
+        startForeground(1,noti);
+
+        Intent intent = new Intent("com.example.activity");
+        intent.putExtra("code",2);
+        sendBroadcast(intent);
     }
 
     public void startMusic(String path) {
@@ -353,6 +368,14 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void pauseMusic() {
         log("pause music...");
         mp.pause();
+
+        Notification noti = makeNotification(currentMusic);
+        startForeground(1,noti);
+
+        Intent intent = new Intent("com.example.activity");
+        intent.putExtra("code",1);
+
+        sendBroadcast(intent);
     }
 
     @Override
@@ -363,13 +386,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             mp.start();
         } else {
             moveMusic(true);
-
-            Intent intent = new Intent("com.example.activity");
-            intent.putExtra("id", musicOrder[position]);
-            sendBroadcast(intent);
-
-            Notification noti = makeNotification(musicOrder[position]);
-            startForeground(1, noti);
         }
     }
 
@@ -403,9 +419,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         saveFileManager.saveLastId(musicOrder[position]);
         currentMusic = musicOrder[position];
 
-        Notification noti = makeNotification(musicOrder[position]);
-        startForeground(1, noti);
-
         String path = MusicSearcher.findPath(this, musicOrder[position]);
         startMusic(path);
     }
@@ -428,8 +441,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         Intent aIntent = new Intent(this, MainActivity.class);
 
-        PendingIntent pIntent = PendingIntent.getActivity(this, 102, aIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-
+        PendingIntent pIntent = PendingIntent.getActivity(this, 102, aIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         String title = MusicSearcher.findDisplayName(this, id);
         String artist = MusicSearcher.findArtist(this, id);
@@ -467,16 +479,34 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         Bitmap bm = getAlbumart(albumId);
         if (bm == null)
-            contentView.setImageViewResource(R.id.remoteView_image,R.drawable.album_white);
+            contentView.setImageViewResource(R.id.remoteView_image, R.drawable.album_white);
         else
             contentView.setImageViewBitmap(R.id.remoteView_image, bm);
 
+        if(mp.isPlaying()) {
+            contentView.setImageViewResource(R.id.remoteView_play, R.drawable.remote_pause);
+        }else
+            contentView.setImageViewResource(R.id.remoteView_play, R.drawable.remote_play);
 
-        Intent cIntent = new Intent(this, MusicService.class);
+        Intent cIntent = new Intent("com.example.remote");
         cIntent.putExtra("code", 3);
-        PendingIntent pIntent = PendingIntent.getService(this, 0, cIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+        PendingIntent pIntent = PendingIntent.getBroadcast(this, 3, cIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         contentView.setOnClickPendingIntent(R.id.remoteView_close, pIntent);
+
+        Intent bIntent = new Intent("com.example.remote");
+        bIntent.putExtra("code", 1);
+        PendingIntent pIntent1 = PendingIntent.getBroadcast(this, 1, bIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        contentView.setOnClickPendingIntent(R.id.remoteView_play, pIntent1);
+
+        Intent aIntent = new Intent("com.example.remote");
+        aIntent.putExtra("code",2);
+        PendingIntent pIntent2 = PendingIntent.getBroadcast(this,2,aIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+        contentView.setOnClickPendingIntent(R.id.remoteView_fast_rewind,pIntent2);
+
+        Intent dIntent = new Intent("com.example.remote");
+        dIntent.putExtra("code",4);
+        PendingIntent pIntent3 = PendingIntent.getBroadcast(this,4,dIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+        contentView.setOnClickPendingIntent(R.id.remoteView_fast_forward,pIntent3);
     }
 
     private void log(String s) {

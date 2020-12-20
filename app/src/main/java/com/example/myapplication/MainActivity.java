@@ -63,7 +63,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, onStartDragListener {
     public static RecyclerView recyclerView;
     private TextView thumbnail_title, thumbnail_artist, music_title, music_artist, current_duration, total_duration;
-    private ImageView thumbnail_play, play, music_image, fast_rewind, fast_forward, repeat, loop;
+    private ImageView below_thumbnail, thumbnail_play, play, music_image, fast_rewind, fast_forward, repeat, loop;
     private MusicRecyclerAdapter adapter;
     private LinearLayout belowMusicMenu;
     private TransformationLayout transformationLayout;
@@ -85,15 +85,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String id = intent.getStringExtra("id");
             int code = intent.getIntExtra("code", -1);
 
-            log("code : " + code);
-            if (code == 1) {
-                boolean s = intent.getBooleanExtra("status", false);
-                changePlayButton(s);
-            } else if (code == 2) {
+            if(code == 0) {
+                //음악을 선택하여 실행한 경우
+                makeMusicView(id);
+            }else if (code == 1 || code == 2) {
+                //1 인 경우, 음악을 잠시 멈춘다, 2 인 경우, 음악을 재실행
+                boolean check = true;
+                if(code == 1)
+                    check = false;
+
+                changePlayButton(check);
+            } else if (code == 3) {
+                //현재 진행중인 음악을 삭제한 경우
                 mService.pauseMusic();
                 belowMusicMenu.setVisibility(View.GONE);
-            } else {
-                makeMusicView(id);
+
+                mService.stopForeground(true);
             }
         }
     };
@@ -178,6 +185,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         thumbnail_title = (TextView) findViewById(R.id.thumbnail_title);
         thumbnail_artist = (TextView) findViewById(R.id.thumbnail_artist);
         belowMusicMenu = (LinearLayout) findViewById(R.id.belowMusicMenu);
+        below_thumbnail = (ImageView)findViewById(R.id.below_thumbnail);
         transformationLayout = (TransformationLayout) findViewById(R.id.transformation_layout);
         recycler_parent = (RelativeLayout)findViewById(R.id.recycler_parent);
 
@@ -185,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if(recyclerView == null) {
             recyclerView = (RecyclerView) findViewById(R.id.recycle_view);
-            //recyclerView.addItemDecoration(new ItemDecoration());
+            // recyclerView.addItemDecoration(new ItemDecoration(getApplicationContext(),R.drawable.recyclerview_divider));
             recyclerView.setNestedScrollingEnabled(false);
 
             adapter = new MusicRecyclerAdapter(this, recyclerView, this);
@@ -408,6 +416,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         thumbnail_title.setSelected(true); //marquee 진행
         thumbnail_artist.setText(artist);
 
+        Bitmap bm = getAlbumart(albumId);
+
+        if(bm == null)
+            below_thumbnail.setImageDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.album_white,null));
+        else
+            below_thumbnail.setImageBitmap(bm);
+
         music_title.setText(title);
         music_artist.setText(artist);
         total_duration.setText(convertDuration(duration));
@@ -427,14 +442,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void changePlayButton(boolean p) {
         if (p) {
             //노래가 실행 중
-            play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.pause, null));
-            thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.pause, null));
+            play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.remote_pause, null));
+            thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.remote_pause, null));
             thread = new MusicThread();
             thread.start();
         } else {
             //노래가 멈춤
-            play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.play, null));
-            thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.play, null));
+            play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.remote_play, null));
+            thumbnail_play.setImageDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.remote_play, null));
             handler.sendEmptyMessage(SEND_STOP);
         }
     }
@@ -572,9 +587,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         } catch (Exception e) {
         }
-
-        if (bm == null)
-            bm = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher_foreground);
 
         return bm;
     }
