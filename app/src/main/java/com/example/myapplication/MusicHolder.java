@@ -71,7 +71,7 @@ public class MusicHolder extends RecyclerView.ViewHolder implements View.OnClick
 
         Bitmap bm = getAlbumart(context, albumId);
         if (bm == null)
-            image.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.album, null));
+            image.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.album_white, null));
         else
             image.setImageBitmap(bm);
     }

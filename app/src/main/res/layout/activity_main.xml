@@ -17,6 +17,7 @@
             android:id="@+id/recycle_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@color/black_50"
             android:scrollbarThumbVertical="@drawable/scrollbar_thumb"
             android:scrollbarTrackVertical="@color/bright_gray"
             android:scrollbars="vertical"
@@ -29,8 +30,7 @@
         layout="@layout/music_detail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_weight="2" />
+        android:layout_alignParentBottom="true" />
 
     <com.skydoves.transformationlayout.TransformationLayout
         android:id="@+id/transformation_layout"
@@ -40,37 +40,35 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintVertical_weight="1"
         app:transformation_direction="auto"
-        app:transformation_duration="600"
+        app:transformation_duration="350"
         app:transformation_fitMode="auto"
-        app:transformation_pathMode="arc"
         app:layout_constraintVertical_chainStyle="spread"
-        app:transformation_targetView="@id/targetView"
-        tools:ignore="MissingConstraints">
+        app:transformation_targetView="@id/targetView">
 
 
         <LinearLayout
             android:id="@+id/belowMusicMenu"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:background="@android:drawable/screen_background_dark"
             android:visibility="gone"
-            >
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/bright_gray"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:padding="3dp">
 
                 <ImageView
-                    android:id="@+id/play"
                     android:layout_width="0dp"
-                    android:layout_height="30dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="15dp"
                     android:layout_weight="1"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/play" />
+                    android:id="@+id/below_thumbnail"
+                    android:adjustViewBounds="true"
+                    android:scaleType="centerInside"/>
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -86,6 +84,7 @@
                         android:layout_gravity="center"
                         android:ellipsize="marquee"
                         android:gravity="center"
+                        android:textColor="@android:color/white"
                         android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
                         android:text="test"
@@ -97,18 +96,19 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:ellipsize="marquee"
+                        android:textColor="@android:color/white"
                         android:singleLine="true"
                         android:text="artist"
                         android:textSize="10dp" />
                 </LinearLayout>
 
                 <ImageView
-                    android:id="@+id/more"
+                    android:id="@+id/play"
                     android:layout_width="0dp"
                     android:layout_height="30dp"
                     android:layout_weight="1"
                     android:scaleType="centerInside"
-                    android:src="@android:drawable/ic_menu_more" />
+                    android:src="@drawable/remote_play" />
 
             </LinearLayout>
         </LinearLayout>

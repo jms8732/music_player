@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
 
     android:layout_width="match_parent"
-    android:layout_height="@dimen/music_layout_height"
+    android:layout_height="60dp"
     tools:ignore="MissingConstraints">
 
     <ImageView
@@ -14,7 +14,7 @@
         android:layout_marginRight="5dp"
         android:layout_toLeftOf="@+id/text"
         android:scaleType="centerCrop"
-        android:src="@drawable/upward_black" />
+        android:src="@drawable/upward_white" />
 
     <TextView
         android:id="@+id/text"
@@ -22,6 +22,7 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:text="맨 위로"
+        android:textColor="@android:color/white"
         android:textSize="15dp"
         android:textStyle="bold" />
 
