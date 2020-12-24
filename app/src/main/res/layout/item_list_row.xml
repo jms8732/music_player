@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+        <variable
+            name="music"
+            type="com.example.myapplication.Music" />
+        <variable
+            name="handler"
+            type="com.example.myapplication.HandleListener" />
+        <variable
+            name="holder"
+            type="com.example.myapplication.Adapter.MyHolder" />
+        <variable
+            name="viewModel"
+            type="com.example.myapplication.MainViewModel" />
+        <import type="com.example.myapplication.Util"/>
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="@{() -> handler.onRecycleLayoutClick(music,holder,viewModel.thumbnailPlay)}">
+
+        <ImageView
+            android:id="@+id/recycler_music_image"
+            android:layout_width="65dp"
+            android:layout_height="65dp"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="15dp"
+            android:adjustViewBounds="true"
+            android:scaleType="centerInside"
+            android:loadImage="@{music.image}"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/recycler_music_image"
+            android:layout_centerVertical="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/recycler_music_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="13"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:text="@{music.title}"
+                android:ellipsize="marquee"
+                android:textColor="@android:color/white"
+                android:textSize="13dp" />
+
+            <TextView
+                android:id="@+id/recycler_music_artist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="13"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:ellipsize="marquee"
+                android:singleLine="true"
+                android:text="@{music.artist}"
+                android:textColor="@android:color/white"
+                android:textSize="10dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/recycler_music_duration"
+            android:textColor="@android:color/white"
+            android:textSize="10dp"
+            android:text="@{Util.convertDuration(music.duration)}"
+            android:layout_centerVertical="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="15dp"
+            />
+
+        <!--
+        <ImageView
+            android:id="@+id/recycler_music_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:scaleType="centerInside"
+            android:src="@drawable/more_vertical"
+            android:onClick="@{()->handler.onMenuClick(holder,viewModel)}"
+            android:layout_marginRight="15dp"/>
+-->
+
+    </RelativeLayout>
+</layout>
