@@ -1,117 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/recycler_parent"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="com.example.myapplication.MainViewModel" />
+        <variable
+            name="handler"
+            type="com.example.myapplication.HandleListener" />
+        <import type="android.view.View"/>
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintVertical_weight="5"
-        app:layout_constraintBottom_toTopOf="@+id/transformation_layout"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_height="match_parent"
+        android:background="@android:color/darker_gray"
+        android:orientation="vertical">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycle_view"
+            android:id="@+id/recycler_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/black_50"
-            android:scrollbarThumbVertical="@drawable/scrollbar_thumb"
-            android:scrollbarTrackVertical="@color/bright_gray"
             android:scrollbars="vertical"
-            />
-    </RelativeLayout>
+            app:layout_constrainedHeight="true"
+            app:layout_constraintBottom_toTopOf="@+id/thumbnail_show"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0"
+            tools:listitem="@layout/item_list_row" />
 
-
-    <include
-        android:id="@+id/targetView"
-        layout="@layout/music_detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true" />
-
-    <com.skydoves.transformationlayout.TransformationLayout
-        android:id="@+id/transformation_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/recycler_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintVertical_weight="1"
-        app:transformation_direction="auto"
-        app:transformation_duration="350"
-        app:transformation_fitMode="auto"
-        app:layout_constraintVertical_chainStyle="spread"
-        app:transformation_targetView="@id/targetView">
-
-
-        <LinearLayout
-            android:id="@+id/belowMusicMenu"
+        <include
+            android:id="@+id/music_detail"
+            layout="@layout/music_detail_show"
             android:layout_width="match_parent"
-            android:background="@android:drawable/screen_background_dark"
-            android:visibility="gone"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"></include>
 
-            <LinearLayout
+        <com.skydoves.transformationlayout.TransformationLayout
+            android:id="@+id/thumbnail_show"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/recycler_view"
+            app:transformation_duration="450"
+            app:transformation_fitMode="auto"
+            android:visibility="@{viewModel.isPlaying ? View.VISIBLE : View.GONE}"
+            android:onClick="@{(view) -> handler.onTransform(view)}"
+            app:transformation_targetView="@+id/music_detail">
+
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="3dp">
+                android:background="@android:color/background_dark">
 
                 <ImageView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:id="@+id/thumbnail_music_image"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
+                    android:layout_alignParentLeft="true"
+                    android:layout_centerVertical="true"
                     android:layout_marginRight="15dp"
-                    android:layout_weight="1"
-                    android:id="@+id/below_thumbnail"
                     android:adjustViewBounds="true"
-                    android:scaleType="centerInside"/>
+                    android:scaleType="centerInside"
+                    android:loadUrl="@{viewModel.image}" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="3"
-                    android:gravity="center"
+                    android:layout_centerVertical="true"
+                    android:layout_toRightOf="@+id/thumbnail_music_image"
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/thumbnail_title"
+                        android:id="@+id/thumbnail_music_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center"
                         android:ellipsize="marquee"
-                        android:gravity="center"
-                        android:textColor="@android:color/white"
+                        android:ems="15"
                         android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
-                        android:text="test"
-                        android:textSize="14dp" />
+                        android:text="@{viewModel.title}"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp" />
 
                     <TextView
-                        android:id="@+id/thumbnail_artist"
+                        android:id="@+id/thumbnail_music_artist"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:ellipsize="marquee"
-                        android:textColor="@android:color/white"
+                        android:ems="15"
+                        android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
-                        android:text="artist"
+                        android:text="@{viewModel.artist}"
+                        android:textColor="@android:color/white"
                         android:textSize="10dp" />
                 </LinearLayout>
 
                 <ImageView
-                    android:id="@+id/play"
-                    android:layout_width="0dp"
-                    android:layout_height="30dp"
+                    android:id="@+id/thumbnail_music_play"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
                     android:layout_weight="1"
+                    android:adjustViewBounds="true"
                     android:scaleType="centerInside"
-                    android:src="@drawable/remote_play" />
+                    android:playThumbnail="@{viewModel.thumbnailPlay}"
+                    android:onClick="@{() -> handler.onClick(viewModel.thumbnailPlay)}"/>
 
-            </LinearLayout>
-        </LinearLayout>
+            </RelativeLayout>
 
-    </com.skydoves.transformationlayout.TransformationLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+        </com.skydoves.transformationlayout.TransformationLayout>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>
