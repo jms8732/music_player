@@ -34,9 +34,8 @@ public class Music {
     public static void loadImage(ImageView view, int resId) {
         Glide.with(view.getContext())
                 .load(Util.getAlbumart(view.getContext(), resId))
-                .thumbnail(0.1f)
-                .override(200, 200)
-                .centerInside()
+                .thumbnail(0.25f)
+                .skipMemoryCache(false)
                 .placeholder(R.drawable.album_white)
                 .into(view);
     }

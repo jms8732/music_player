@@ -12,35 +12,28 @@ import com.skydoves.transformationlayout.TransformationLayout;
 
 import org.jetbrains.annotations.NotNull;
 
-public class HandleListener implements Status{
+public class HandleListener{
     private static final String TAG = "jms8732";
     private HandleAdpater mAdapter;
-    private String id;
 
     public HandleListener(HandleAdpater adapter) {
         this.mAdapter =adapter;
     }
 
-    public void onClick(MutableLiveData<Boolean> play){
-        if(!play.getValue()){
-            mAdapter.restartMusic();
+    public void onClick(Music music){
+        mAdapter.judgeAction(music,-1);
+    }
+
+    public void onForwardRewindClick(int status){
+        if(status == Status.FORWARD){
+            mAdapter.forwardMusic();
         }else{
-            mAdapter.pauseMusic();
+            mAdapter.rewindMusic();
         }
     }
 
-    public void onRecycleLayoutClick(Music music, Adapter.MyHolder holder, MutableLiveData<Boolean> play){
-        if(id == null || !id.equals(music.getId())){
-            //음악이 처음 실행되는 경우
-            mAdapter.startMusic(music,START,holder.getAdapterPosition());
-            id = music.getId();
-        }else{
-            if(!play.getValue()){
-                mAdapter.restartMusic();
-            }else
-                mAdapter.pauseMusic();
-        }
-
+    public void onRecycleLayoutClick(Music music, Adapter.MyHolder holder){
+        mAdapter.judgeAction(music,holder.getAdapterPosition());
     }
 
     public void onTransform(View view){

@@ -46,8 +46,8 @@
             app:layout_constraintTop_toBottomOf="@+id/recycler_view"
             app:transformation_duration="450"
             app:transformation_fitMode="auto"
-            android:visibility="@{viewModel.isPlaying ? View.VISIBLE : View.GONE}"
             android:onClick="@{(view) -> handler.onTransform(view)}"
+            android:visibility="@{viewModel.isPlaying == true ? View.VISIBLE : View.GONE}"
             app:transformation_targetView="@+id/music_detail">
 
             <RelativeLayout
@@ -107,7 +107,7 @@
                     android:adjustViewBounds="true"
                     android:scaleType="centerInside"
                     android:playThumbnail="@{viewModel.thumbnailPlay}"
-                    android:onClick="@{() -> handler.onClick(viewModel.thumbnailPlay)}"/>
+                    android:onClick="@{() -> handler.onClick(viewModel.currentMusic)}"/>
 
             </RelativeLayout>
 

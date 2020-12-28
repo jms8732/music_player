@@ -126,7 +126,8 @@
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:src="@drawable/rewind_white" />
+                    android:src="@drawable/rewind_white"
+                    android:onClick="@{()->handler.onForwardRewindClick(1)}"/>
 
                 <ImageView
                     android:id="@+id/detail_play"
@@ -138,7 +139,7 @@
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
                     android:playDetail="@{viewModel.thumbnailPlay}"
-                    android:onClick="@{() -> handler.onClick(viewModel.thumbnailPlay)}"/>
+                    android:onClick="@{() -> handler.onClick(viewModel.currentMusic)}"/>
 
                 <ImageView
                     android:id="@+id/fast_forward"
@@ -147,7 +148,8 @@
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:src="@drawable/forward_white" />
+                    android:src="@drawable/forward_white"
+                    android:onClick="@{() -> handler.onForwardRewindClick(0)}"/>
 
 
                 <ImageView

@@ -80,18 +80,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         log("onCreate...");
         super.onCreate(savedInstanceState);
-        audioManager = (AudioManager)getSystemService(AUDIO_SERVICE);
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         binding.recyclerView.setHasFixedSize(true);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-        viewModel = new ViewModelProvider(this,new ViewModelProvider.AndroidViewModelFactory(getApplication())).get(MainViewModel.class);
+        viewModel = new ViewModelProvider(this, new ViewModelProvider.AndroidViewModelFactory(getApplication())).get(MainViewModel.class);
         binding.setLifecycleOwner(this);
-        binding.musicDetail.getRoot().setOnTouchListener(new OnSwipeTouchListener(getApplicationContext()){
+        binding.musicDetail.getRoot().setOnTouchListener(new OnSwipeTouchListener(getApplicationContext()) {
             @Override
             public void onSwipeBottom() {
-                if(binding.thumbnailShow.isTransformed())
+                if (binding.thumbnailShow.isTransformed())
                     binding.thumbnailShow.finishTransform();
             }
         });
@@ -100,7 +100,8 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,progress,AudioManager.FLAG_SHOW_UI);
+                if (fromUser)
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, AudioManager.FLAG_SHOW_UI);
             }
 
             @Override
@@ -120,16 +121,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             int vol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-            if(keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN)
                 --vol;
             else
                 ++vol;
 
             viewModel.setSpeaker(vol);
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC,vol,AudioManager.FLAG_SHOW_UI);
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_SHOW_UI);
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -190,18 +191,8 @@ public class MainActivity extends AppCompatActivity {
                 log("Service connected...");
                 MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
                 mService = binder.getService();
-                mService.setInnerListener(viewModel);
 
-                handleListener = new HandleListener(mService);
-                Adapter adapter = new Adapter(getApplicationContext(), mService.getMusicList(), handleListener, viewModel);
-                binding.recyclerView.setAdapter(adapter);
-                binding.recyclerView.setItemViewCacheSize(mService.getMusicList().size());
-                binding.setHandler(handleListener);
-
-                binding.setViewModel(viewModel);
-                binding.musicDetail.setViewModel(viewModel);
-                binding.musicDetail.setHandler(handleListener);
-
+                initialLayoutSetting();
             }
 
             @Override
@@ -213,6 +204,39 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, conn, 0);
         startService(intent);
+    }
+
+    //레이아웃 초기 세팅
+    private void initialLayoutSetting(){
+        mService.setInnerListener(viewModel);
+
+        handleListener = new HandleListener(mService);
+        Adapter adapter = new Adapter(getApplicationContext(), mService.getMusicList(), handleListener, viewModel);
+        binding.recyclerView.setAdapter(adapter);
+        binding.recyclerView.setItemViewCacheSize(mService.getMusicList().size());
+        binding.setHandler(handleListener);
+
+        binding.setViewModel(viewModel);
+        binding.musicDetail.setViewModel(viewModel);
+        binding.musicDetail.setHandler(handleListener);
+
+        binding.musicDetail.musicProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mService.seekTo(seekBar.getProgress());
+            }
+        });
+
     }
 
     @Override
