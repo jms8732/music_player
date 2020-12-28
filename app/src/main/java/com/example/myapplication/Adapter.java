@@ -37,6 +37,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
         holder.binding.setHandler(handleListener);
         holder.binding.setHolder(holder);
         holder.binding.setViewModel(viewModel);
+        holder.binding.executePendingBindings();
     }
 
     @Override

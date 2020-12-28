@@ -18,10 +18,11 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     private final MutableLiveData<String> artist = new MutableLiveData<>();
     private final MutableLiveData<Boolean> thumbnailPlay = new MutableLiveData<>();
     private final MutableLiveData<Integer> image = new MutableLiveData<>();
-    private final MutableLiveData<Integer> total_duration=  new MutableLiveData<>();
+    private final MutableLiveData<Integer> total_duration = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>();
     private final MutableLiveData<Integer> speaker = new MutableLiveData<>();
     private final MutableLiveData<Integer> progress = new MutableLiveData<>();
+    private final MutableLiveData<Music> currentMusic = new MutableLiveData<>();
 
 
     public MainViewModel(@NonNull Application application) {
@@ -36,11 +37,11 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
         return speaker;
     }
 
-    public void setSpeaker(int volume){
+    public void setSpeaker(int volume) {
         speaker.setValue(volume);
     }
 
-    public void setProgress(int progress){
+    public void setProgress(int progress) {
         this.progress.setValue(progress);
     }
 
@@ -60,6 +61,9 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
         return image;
     }
 
+    public MutableLiveData<Music> getCurrentMusic() {
+        return currentMusic;
+    }
 
     public MutableLiveData<Boolean> getIsPlaying() {
         return isPlaying;
@@ -82,7 +86,7 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     public void startMusic(Music music) {
         String title = music.getTitle();
         String artist = music.getArtist();
-        int resId= music.getImage();
+        int resId = music.getImage();
         int duration = music.getDuration();
 
         this.title.setValue(title);
@@ -90,8 +94,11 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
         this.image.setValue(resId);
         this.total_duration.setValue(duration);
 
-        isPlaying.setValue(true);
+        if (!isPlaying.getValue())
+            isPlaying.setValue(true);
+
         thumbnailPlay.setValue(true);
+        currentMusic.setValue(music);
     }
 
     @Override
@@ -105,25 +112,25 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     }
 
     @BindingAdapter("android:loadUrl")
-    public static void loadUrl(ImageView view, int resId){
+    public static void loadUrl(ImageView view, int resId) {
         Glide.with(view.getContext())
-                .load(Util.getAlbumart(view.getContext(),resId))
+                .load(Util.getAlbumart(view.getContext(), resId))
                 .thumbnail(0.4f)
                 .placeholder(R.drawable.album_white)
                 .into(view);
     }
 
     @BindingAdapter("android:playThumbnail")
-    public static void playThumbnail(ImageView view, boolean playCheck){
-        if(playCheck)
+    public static void playThumbnail(ImageView view, boolean playCheck) {
+        if (playCheck)
             view.setImageResource(R.drawable.circle_pause);
         else
             view.setImageResource(R.drawable.circle_play);
     }
 
     @BindingAdapter("android:playDetail")
-    public static void playDetail(ImageView view, boolean playCheck){
-        if(playCheck)
+    public static void playDetail(ImageView view, boolean playCheck) {
+        if (playCheck)
             view.setImageResource(R.drawable.pause_white);
         else
             view.setImageResource(R.drawable.play_white);

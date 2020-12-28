@@ -24,6 +24,7 @@ import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.recyclerview.widget.RecyclerView;
@@ -46,6 +47,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private InnerListener innerListener;
     private Handler handler;
     private ProgressThread pt;
+    private String current_id;
 
     @Override
     public void onCreate() {
@@ -53,7 +55,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("create...");
 
         //서비스가 연결되면 음악 목록을 불러온다.
-        musics = preparedMusic();
+        musics = preparedMusicList();
 
         if (mp == null) {
             mp = new MediaPlayer();
@@ -84,12 +86,25 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         }
     }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        log("onStartCommand...");
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onDestroy() {
+        log("destroy");
+        super.onDestroy();
+    }
+
     private void makeMusicOrder(int pos) {
         log("makeMusicOrder...");
 
         if (order == null)
             order = new int[musics.size()];
 
+        position = 0;
         order[position] = pos;
 
         if (isSeq) {
@@ -148,7 +163,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     //음악을 준비하는 메소드
-    private ArrayList<Music> preparedMusic() {
+    private ArrayList<Music> preparedMusicList() {
         log("preparedMusic...");
         ArrayList<Music> ret;
         DBHelper helper = new DBHelper(getApplicationContext());
@@ -206,61 +221,85 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     @Override
-    public void startMusic(Music music, int status, int pos) {
-        if (mp.isPlaying())
-            mp.pause();
+    public void judgeAction(Music music, int pos) {
+        String current = music.getId();
+        if (current_id == null || !current_id.equals(current)) {
+            //새로운 음악
+            log("start music..");
+            makeMusicOrder(pos); //음악 재생 순서를 만든다.
+            preparedMusic();
+        } else {
+            if (mp.isPlaying()) {
+                log("pause music...");
+                innerListener.pauseMusic();
+                mp.pause();
+                handler.sendEmptyMessage(SEND_STOP);
+            } else {
+                log("restart music...");
+                innerListener.restartMusic();
+                mp.start();
 
-        makeMusicOrder(pos);
-
-        try {
-            mp.reset();
-            mp.setDataSource(this, Uri.parse(music.getPath()));
-            mp.prepareAsync();
-
-        } catch (IOException e) {
-            e.printStackTrace();
+                pt = new ProgressThread();
+                pt.start();
+            }
         }
     }
 
-
     @Override
-    public void restartMusic() {
-        log("restart music...");
-        innerListener.restartMusic();
-        mp.start();
-
-        pt = new ProgressThread();
-        pt.start();
+    public void forwardMusic() {
+        log("forward music...");
+        //다음 곡
+        position += 1 % musics.size();
+        preparedMusic();
     }
 
     @Override
-    public void pauseMusic() {
-        log("pause music...");
-        innerListener.pauseMusic();
-        mp.pause();
-        handler.sendEmptyMessage(SEND_STOP);
+    public void rewindMusic() {
+        log("rewind music...");
+        if(position - 1 < 0)
+            position = musics.size()-1;
+        else
+            position -= 1;
+
+        preparedMusic();
+    }
+
+    private void preparedMusic(){
+        if(mp.isPlaying()) {
+            mp.pause();
+            handler.sendEmptyMessage(SEND_STOP);
+        }
+
+        try {
+            mp.reset();
+            mp.setDataSource(this,Uri.parse(musics.get(order[position]).getPath()));
+            mp.prepareAsync();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public ArrayList<Music> getMusicList() {
         return this.musics;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        log("onStartCommand...");
-        return super.onStartCommand(intent, flags, startId);
-    }
-
-    @Override
-    public void onDestroy() {
-        log("destroy");
-        super.onDestroy();
-    }
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         log("onError....");
         return true;
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mp) {
+        log("onPrepared...");
+
+        current_id = musics.get(order[position]).getId();
+
+        mp.start();
+        innerListener.startMusic(musics.get(order[position]));
+        pt = new ProgressThread();
+        pt.start();
     }
 
     @Override
@@ -272,22 +311,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         try {
             mp.reset();
-            mp.setDataSource(this, Uri.parse(musics.get(position).getPath()));
+            mp.setDataSource(this, Uri.parse(musics.get(order[position]).getPath()));
             mp.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-    }
-
-    @Override
-    public void onPrepared(MediaPlayer mp) {
-        log("onPrepared...");
-
-        mp.start();
-        innerListener.startMusic(musics.get(order[position]));
-        pt = new ProgressThread();
-        pt.start();
     }
 
     @Nullable

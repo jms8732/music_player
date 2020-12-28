@@ -3,7 +3,7 @@ package com.example.myapplication;
 import androidx.lifecycle.MutableLiveData;
 
 public interface HandleAdpater {
-    void startMusic(Music music, int status, int pos);
-    void restartMusic();
-    void pauseMusic();
+    void judgeAction(Music music, int pos);
+    void forwardMusic();
+    void rewindMusic();
 }
