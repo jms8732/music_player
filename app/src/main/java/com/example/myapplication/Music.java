@@ -13,6 +13,7 @@ import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBinderMapper;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.io.FileDescriptor;
 
@@ -33,11 +34,19 @@ public class Music {
     @BindingAdapter("android:loadImage")
     public static void loadImage(ImageView view, int resId) {
         Glide.with(view.getContext())
-                .load(Util.getAlbumart(view.getContext(), resId))
-                .thumbnail(0.25f)
-                .skipMemoryCache(false)
+                .load(Util.getAlbumart(view.getContext(),resId))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .thumbnail(0.5f)
                 .placeholder(R.drawable.album_white)
+                .error(R.drawable.album_white)
                 .into(view);
+    /*
+        Bitmap bm = Util.getAlbumart(view.getContext(),resId);
+
+        if(bm == null){
+            view.setImageResource(R.drawable.album_white);
+        }else
+            view.setImageBitmap(bm);*/
     }
 
     public String getTitle() {

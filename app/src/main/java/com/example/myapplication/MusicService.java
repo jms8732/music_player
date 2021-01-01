@@ -1,8 +1,17 @@
 package com.example.myapplication;
 
+import android.annotation.TargetApi;
+import android.app.ActivityManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,6 +21,7 @@ import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -21,22 +31,28 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ProgressBar;
+import android.widget.RemoteViews;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, Status
         , HandleAdpater {
-    private static final String TAG = "jms8732";
+    private static final String TAG = "jms8732", receiverName = "com.example.service";
     private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     private ArrayList<Music> musics;
     private MediaPlayer mp;
@@ -48,6 +64,51 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private Handler handler;
     private ProgressThread pt;
     private String current_id;
+    private NotificationManager manager;
+    private String channelId, channelName, channelDescription;
+    private NotificationChannel channel;
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int mode = intent.getIntExtra("mode", -1);
+            log("mode : " + mode);
+            switch (mode) {
+                case -1:
+                    break;
+                case PLAY:
+                    if(mp.isPlaying())
+                        pauseMusic();
+                    else
+                        restartMusic();
+                    break;
+                case FORWARD:
+                    forwardMusic();
+                    break;
+                case REWIND:
+                    rewindMusic();
+                    break;
+                case CLOSE:
+                    pauseMusic();
+                    stopForeground(true);
+                    if (!isActivityAlive()) //액티비티가 살아있지 않을 경우
+                        stopSelf();
+                    break;
+            }
+        }
+    };
+
+    //엑티비티가 살아있는 지 판단하는 메소드
+    private boolean isActivityAlive() {
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
+
+        for (ActivityManager.RunningTaskInfo task : tasks) {
+            if (getPackageName().equalsIgnoreCase(task.baseActivity.getPackageName()))
+                return true;
+        }
+
+        return false;
+    }
 
     @Override
     public void onCreate() {
@@ -56,6 +117,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         //서비스가 연결되면 음악 목록을 불러온다.
         musics = preparedMusicList();
+
+        initialChannelSetting(); //Notification 채널 세팅
+        registerReceiver(receiver, new IntentFilter(receiverName));
+
 
         if (mp == null) {
             mp = new MediaPlayer();
@@ -96,6 +161,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onDestroy() {
         log("destroy");
         super.onDestroy();
+        unregisterReceiver(receiver);
     }
 
     private void makeMusicOrder(int pos) {
@@ -230,19 +296,34 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             preparedMusic();
         } else {
             if (mp.isPlaying()) {
-                log("pause music...");
-                innerListener.pauseMusic();
-                mp.pause();
-                handler.sendEmptyMessage(SEND_STOP);
+                pauseMusic();
             } else {
-                log("restart music...");
-                innerListener.restartMusic();
-                mp.start();
-
-                pt = new ProgressThread();
-                pt.start();
+                restartMusic();
             }
         }
+    }
+
+    private void restartMusic(){
+        log("restart music...");
+        innerListener.restartMusic();
+        mp.start();
+
+        pt = new ProgressThread();
+        pt.start();
+
+        startForeground(1,buildNotification(musics.get(order[position])));
+    }
+
+    private void pauseMusic(){
+        if (mp.isPlaying())
+            mp.pause();
+
+        log("pause music...");
+        innerListener.pauseMusic();
+        mp.pause();
+        handler.sendEmptyMessage(SEND_STOP);
+
+        startForeground(1, buildNotification(musics.get(order[position])));
     }
 
     @Override
@@ -256,27 +337,28 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void rewindMusic() {
         log("rewind music...");
-        if(position - 1 < 0)
-            position = musics.size()-1;
+        if (position - 1 < 0)
+            position = musics.size() - 1;
         else
             position -= 1;
-
         preparedMusic();
     }
 
-    private void preparedMusic(){
-        if(mp.isPlaying()) {
+    //음악 준비
+    private void preparedMusic() {
+        if (mp.isPlaying()) {
             mp.pause();
             handler.sendEmptyMessage(SEND_STOP);
         }
 
         try {
             mp.reset();
-            mp.setDataSource(this,Uri.parse(musics.get(order[position]).getPath()));
+            mp.setDataSource(this, Uri.parse(musics.get(order[position]).getPath()));
             mp.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public ArrayList<Music> getMusicList() {
@@ -300,6 +382,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         innerListener.startMusic(musics.get(order[position]));
         pt = new ProgressThread();
         pt.start();
+
+        startForeground(1, buildNotification(musics.get(order[position])));
     }
 
     @Override
@@ -317,6 +401,82 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             e.printStackTrace();
         }
 
+    }
+
+    private Notification buildNotification(Music music) {
+        NotificationCompat.Builder builder = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new NotificationCompat.Builder(this, channelId);
+        } else
+            builder = new NotificationCompat.Builder(this);
+
+        builder.setWhen(System.currentTimeMillis());
+        builder.setContent(buildRemoveViews(music));
+        builder.setContentText("Play");
+        builder.setSmallIcon(R.drawable.circle_play);
+        builder.setAutoCancel(false);
+
+        Intent intent = new Intent(this,MainActivity.class);
+        PendingIntent pIntent = PendingIntent.getActivity(this,101,intent,PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(pIntent);
+
+        return builder.build();
+    }
+
+    private RemoteViews buildRemoveViews(Music music) {
+        RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.remote_music_view);
+
+        remoteViews.setTextViewText(R.id.remote_view_titie, music.getTitle());
+        remoteViews.setTextViewText(R.id.remote_view_artist, music.getArtist());
+
+        Bitmap bitmap = Util.getAlbumart(this, music.getImage());
+
+        if (bitmap != null)
+            remoteViews.setImageViewBitmap(R.id.remote_view_image, bitmap);
+
+        if (mp.isPlaying()) {
+            remoteViews.setImageViewResource(R.id.remote_view_play, R.drawable.pause_white);
+        } else
+            remoteViews.setImageViewResource(R.id.remote_view_play, R.drawable.play_white);
+
+
+        Intent intent = new Intent(receiverName);
+        intent.putExtra("mode", PLAY);
+        PendingIntent pIntent = PendingIntent.getBroadcast(this, PLAY, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(R.id.remote_view_play, pIntent);
+
+        intent = new Intent(receiverName);
+        intent.putExtra("mode", FORWARD);
+        pIntent = PendingIntent.getBroadcast(this, FORWARD, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(R.id.remote_view_forward, pIntent);
+
+        intent = new Intent(receiverName);
+        intent.putExtra("mode", REWIND);
+        pIntent = PendingIntent.getBroadcast(this, REWIND, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(R.id.remote_view_rewind, pIntent);
+
+        intent = new Intent(receiverName);
+        intent.putExtra("mode", CLOSE);
+        pIntent = PendingIntent.getBroadcast(this, CLOSE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        remoteViews.setOnClickPendingIntent(R.id.remote_view_close, pIntent);
+
+        return remoteViews;
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private void initialChannelSetting() {
+        manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        channelId = "Music-Channel";
+        channelName = "Music player Test";
+        channelDescription = "First music player";
+
+        channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setDescription(channelDescription);
+        channel.enableLights(false);
+        channel.enableVibration(false);
+        channel.setVibrationPattern(new long[]{0});
+
+        manager.createNotificationChannel(channel);
     }
 
     @Nullable

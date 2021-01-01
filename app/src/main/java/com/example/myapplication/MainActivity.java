@@ -117,6 +117,12 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.speaker.setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
         binding.thumbnailMusicTitle.setSelected(true);
         viewModel.setSpeaker(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            //퍼미션이 허가 된 경우
+            connectionService();
+        } else
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
     }
 
     @Override
@@ -140,12 +146,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         log("onStart...");
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            //퍼미션이 허가 된 경우
-            connectionService();
-        } else
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
     }
 
     @Override
