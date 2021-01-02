@@ -75,19 +75,32 @@ public class MainActivity extends AppCompatActivity {
     private AudioManager audioManager;
     private MainViewModel viewModel;
     private HandleListener handleListener;
+    private ServiceConnection conn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            log("Service connected...");
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            mService = binder.getService();
 
+            initialLayoutSetting();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            log("Service disconnected....");
+        }
+    };
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         log("onCreate...");
         super.onCreate(savedInstanceState);
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        binding.setLifecycleOwner(this);
         binding.recyclerView.setHasFixedSize(true);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
         viewModel = new ViewModelProvider(this, new ViewModelProvider.AndroidViewModelFactory(getApplication())).get(MainViewModel.class);
-        binding.setLifecycleOwner(this);
         binding.musicDetail.getRoot().setOnTouchListener(new OnSwipeTouchListener(getApplicationContext()) {
             @Override
             public void onSwipeBottom() {
@@ -170,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         log("onDestroy...");
+        unbindService(conn);
     }
 
     @Override
@@ -185,22 +199,6 @@ public class MainActivity extends AppCompatActivity {
 
     //서비스와 연결 진행
     private void connectionService() {
-        ServiceConnection conn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                log("Service connected...");
-                MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-                mService = binder.getService();
-
-                initialLayoutSetting();
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                log("Service disconnected....");
-            }
-        };
-
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, conn, 0);
         startService(intent);
