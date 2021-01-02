@@ -34,6 +34,7 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.9.0'
     implementation 'net.cachapa.expandablelayout:expandablelayout:2.9.2'
     implementation "com.github.skydoves:transformationlayout:1.0.6"
+    implementation 'com.squareup.picasso:picasso:2.71828'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'

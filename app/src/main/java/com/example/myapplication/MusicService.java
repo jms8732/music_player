@@ -76,7 +76,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 case -1:
                     break;
                 case PLAY:
-                    if(mp.isPlaying())
+                    if (mp.isPlaying())
                         pauseMusic();
                     else
                         restartMusic();
@@ -114,7 +114,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onCreate() {
         super.onCreate();
         log("create...");
-
         //서비스가 연결되면 음악 목록을 불러온다.
         musics = preparedMusicList();
 
@@ -154,6 +153,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         log("onStartCommand...");
+
+        if (order != null) {
+            boolean b = false;
+            if(mp.isPlaying())
+                b = true;
+
+            innerListener.startMusic(musics.get(order[position]),b);
+        }
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -253,7 +261,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 ret.add(new Music(id, title, artist, duration, albumid, path));
             }
         }
-
         return ret;
     }
 
@@ -303,7 +310,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         }
     }
 
-    private void restartMusic(){
+    private void restartMusic() {
         log("restart music...");
         innerListener.restartMusic();
         mp.start();
@@ -311,10 +318,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         pt = new ProgressThread();
         pt.start();
 
-        startForeground(1,buildNotification(musics.get(order[position])));
+        startForeground(1, buildNotification(musics.get(order[position])));
     }
 
-    private void pauseMusic(){
+    private void pauseMusic() {
         if (mp.isPlaying())
             mp.pause();
 
@@ -379,7 +386,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         current_id = musics.get(order[position]).getId();
 
         mp.start();
-        innerListener.startMusic(musics.get(order[position]));
+        innerListener.startMusic(musics.get(order[position]), true);
         pt = new ProgressThread();
         pt.start();
 
@@ -416,8 +423,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         builder.setSmallIcon(R.drawable.circle_play);
         builder.setAutoCancel(false);
 
-        Intent intent = new Intent(this,MainActivity.class);
-        PendingIntent pIntent = PendingIntent.getActivity(this,101,intent,PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent pIntent = PendingIntent.getActivity(this, 101, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pIntent);
 
         return builder.build();
@@ -433,6 +440,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         if (bitmap != null)
             remoteViews.setImageViewBitmap(R.id.remote_view_image, bitmap);
+        else
+            remoteViews.setImageViewResource(R.id.remote_view_image,R.drawable.album_white);
 
         if (mp.isPlaying()) {
             remoteViews.setImageViewResource(R.id.remote_view_play, R.drawable.pause_white);

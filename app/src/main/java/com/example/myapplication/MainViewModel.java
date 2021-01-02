@@ -69,6 +69,10 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
         return isPlaying;
     }
 
+    public void setIsPlaying(boolean b) {
+        this.isPlaying.setValue(b);
+    }
+
     public MutableLiveData<Integer> getProgress() {
         return progress;
     }
@@ -83,7 +87,7 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     }
 
     @Override
-    public void startMusic(Music music) {
+    public void startMusic(Music music, boolean play) {
         String title = music.getTitle();
         String artist = music.getArtist();
         int resId = music.getImage();
@@ -97,8 +101,12 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
         if (!isPlaying.getValue())
             isPlaying.setValue(true);
 
-        thumbnailPlay.setValue(true);
         currentMusic.setValue(music);
+
+        if (play)
+            thumbnailPlay.setValue(true);
+        else
+            thumbnailPlay.setValue(false);
     }
 
     @Override
