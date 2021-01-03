@@ -16,6 +16,7 @@
             name="viewModel"
             type="com.example.myapplication.MainViewModel" />
         <import type="com.example.myapplication.Util"/>
+        <import type="android.view.View"/>
     </data>
 
     <RelativeLayout
@@ -31,7 +32,8 @@
             android:layout_centerVertical="true"
             android:layout_marginRight="15dp"
             android:adjustViewBounds="true"
-            android:loadImage="@{music.image}"/>
+            android:loadImage="@{music.image}"
+            android:onSwipe="@{holder}"/>
 
         <LinearLayout
             android:layout_width="wrap_content"
