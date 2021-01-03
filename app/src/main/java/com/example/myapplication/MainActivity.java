@@ -70,7 +70,6 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "jms8732";
     private ActivityMainBinding binding;
-    private MusicService mService;
     private long pressedTime = 0;
     private AudioManager audioManager;
     private MainViewModel viewModel;
@@ -80,9 +79,9 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             log("Service connected...");
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-            mService = binder.getService();
 
-            initialLayoutSetting();
+
+            initialLayoutSetting(binder.getService());
         }
 
         @Override
@@ -205,11 +204,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //레이아웃 초기 세팅
-    private void initialLayoutSetting(){
+    private void initialLayoutSetting(final MusicService mService){
         mService.setInnerListener(viewModel);
-
         handleListener = new HandleListener(mService);
-        Adapter adapter = new Adapter(getApplicationContext(), mService.getMusicList(), handleListener, viewModel);
+        Adapter adapter = new Adapter(getApplicationContext(), handleListener, viewModel);
+
+        mService.setAdapter(adapter);
+
+        ItemTouchHelper.Callback callback = new ItemMoveCallback(mService);
+        ItemTouchHelper helper = new ItemTouchHelper(callback);
+        helper.attachToRecyclerView(binding.recyclerView);
+
+        handleListener.setItemTouchHelper(helper);
+
         binding.recyclerView.setAdapter(adapter);
         binding.recyclerView.setItemViewCacheSize(mService.getMusicList().size());
         binding.setHandler(handleListener);

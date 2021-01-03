@@ -10,10 +10,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.databinding.ItemListRowBinding;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Handler;
 
@@ -23,9 +26,8 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
     private HandleListener handleListener;
     private MainViewModel viewModel;
 
-    public Adapter(Context context, List<Music> list, HandleListener handler, MainViewModel viewModel){
+    public Adapter(Context context, HandleListener handler, MainViewModel viewModel){
         this.context =context;
-        this.music = list;
         this.handleListener = handler;
         this.viewModel =viewModel;
     }
@@ -40,6 +42,10 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
         holder.binding.executePendingBindings();
     }
 
+    public void setMusic(ArrayList<Music> music){
+        this.music = music;
+    }
+
     @Override
     public int getItemCount() {
         return music.size();
@@ -52,6 +58,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
         MyHolder myHolder = new MyHolder(binding);
         return myHolder;
     }
+
 
     public static class MyHolder extends RecyclerView.ViewHolder{
         ItemListRowBinding binding;

@@ -47,11 +47,12 @@ import com.bumptech.glide.Glide;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, Status
-        , HandleAdpater {
+        , HandleAdpater, ItemMoveCallback.ItemTouchHelperAdapter {
     private static final String TAG = "jms8732", receiverName = "com.example.service";
     private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     private ArrayList<Music> musics;
@@ -67,6 +68,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private NotificationManager manager;
     private String channelId, channelName, channelDescription;
     private NotificationChannel channel;
+    private Adapter adapter;
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -155,11 +157,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("onStartCommand...");
 
         if (order != null) {
-            boolean b = false;
-            if(mp.isPlaying())
-                b = true;
-
-            innerListener.startMusic(musics.get(order[position]),b);
+            innerListener.startMusic(musics.get(order[position]),mp.isPlaying());
         }
 
         return super.onStartCommand(intent, flags, startId);
@@ -372,6 +370,24 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         return this.musics;
     }
 
+    public void setAdapter(Adapter adapter){
+        this.adapter = adapter;
+        this.adapter.setMusic(musics);
+    }
+
+    @Override
+    public void onItemMove(int fromPos, int targetPos) {
+        log("onItemMove..");
+        Collections.swap(musics,fromPos,targetPos);
+        adapter.notifyItemMoved(fromPos,targetPos);
+    }
+
+    @Override
+    public void onItemDismiss(int pos) {
+        log("onItemDismiss..");
+        musics.remove(pos);
+        adapter.notifyItemRemoved(pos);
+    }
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
