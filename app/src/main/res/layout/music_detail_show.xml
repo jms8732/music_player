@@ -159,7 +159,8 @@
                     android:layout_weight="0.5"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:src="@drawable/repeat_white" />
+                    android:loadLoopImage="@{viewModel.loop}"
+                    android:onClick="@{() -> handler.onClickLoop(viewModel.loop)}"/>
 
             </LinearLayout>
 

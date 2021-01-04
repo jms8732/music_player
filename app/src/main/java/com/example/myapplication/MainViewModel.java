@@ -23,6 +23,7 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     private final MutableLiveData<Integer> speaker = new MutableLiveData<>();
     private final MutableLiveData<Integer> progress = new MutableLiveData<>();
     private final MutableLiveData<Music> currentMusic = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> loop = new MutableLiveData<>();
 
 
     public MainViewModel(@NonNull Application application) {
@@ -79,6 +80,16 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
 
     public MutableLiveData<Integer> getTotal_duration() {
         return total_duration;
+    }
+
+
+    public MutableLiveData<Boolean> getLoop() {
+        return loop;
+    }
+
+    @Override
+    public void reviseLoop(boolean loop) {
+        this.loop.setValue(loop);
     }
 
     @Override
@@ -142,6 +153,14 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
             view.setImageResource(R.drawable.pause_white);
         else
             view.setImageResource(R.drawable.play_white);
+    }
+
+    @BindingAdapter("android:loadLoopImage")
+    public static void loadLoopImage(ImageView view, boolean loop){
+        if(loop)
+            view.setImageResource(R.drawable.repeat_activate);
+        else
+            view.setImageResource(R.drawable.repeat_white);
     }
 
 }

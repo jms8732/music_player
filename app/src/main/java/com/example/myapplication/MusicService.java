@@ -32,6 +32,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -58,9 +59,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private ArrayList<Music> musics;
     private MediaPlayer mp;
     private SharedPreferences prefs;
-    private int position = 0;
+    private int position;
     private boolean isSeq, isLoop;
-    private int[] order;
     private InnerListener innerListener;
     private Handler handler;
     private ProgressThread pt;
@@ -122,7 +122,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         initialChannelSetting(); //Notification 채널 세팅
         registerReceiver(receiver, new IntentFilter(receiverName));
 
-
         if (mp == null) {
             mp = new MediaPlayer();
             mp.setOnCompletionListener(this);
@@ -133,7 +132,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         prefs = getSharedPreferences("Music", MODE_PRIVATE);
         isSeq = prefs.getBoolean("sequential", true);
         isLoop = prefs.getBoolean("loop", false);
-        position = prefs.getInt("current", 0);
+        position = prefs.getInt("current", -1);
 
         if (handler == null) {
             handler = new Handler() {
@@ -156,8 +155,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public int onStartCommand(Intent intent, int flags, int startId) {
         log("onStartCommand...");
 
-        if (order != null) {
-            innerListener.startMusic(musics.get(order[position]),mp.isPlaying());
+        if (position != -1) {
+            innerListener.startMusic(musics.get(position), mp.isPlaying());
         }
 
         return super.onStartCommand(intent, flags, startId);
@@ -170,68 +169,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         unregisterReceiver(receiver);
     }
 
-    private void makeMusicOrder(int pos) {
-        log("makeMusicOrder...");
-
-        if (order == null)
-            order = new int[musics.size()];
-
-        position = 0;
-        order[position] = pos;
-
-        if (isSeq) {
-            //순차일 경우
-            makeSequentialOrder(pos);
-        } else {
-            boolean[] visited = new boolean[musics.size()];
-            visited[pos] = true;
-            makeRandomOrder(visited);
-        }
-    }
-
-    private void makeRandomOrder(boolean[] visited) {
-        log("make Random Order...");
-        Random rand = new Random();
-
-        for (int i = 1; i < musics.size(); i++) {
-            order[i] = getIdx(visited, rand);
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i : order) {
-            sb.append(i + " ");
-        }
-
-        log("order: " + sb.toString());
-    }
-
-    private int getIdx(boolean[] visited, Random rand) {
-        while (true) {
-            int idx = rand.nextInt(visited.length);
-            if (!visited[idx]) {
-                visited[idx] = true;
-                return idx;
-            }
-        }
-    }
-
-    private void makeSequentialOrder(int start) {
-        log("make Sequential Order...");
-        for (int i = 1; i < musics.size(); i++) {
-            order[i] = (i + start) % musics.size();
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i : order) {
-            sb.append(i + " ");
-        }
-        log("order: " + sb.toString());
-    }
 
     public void setInnerListener(InnerListener mListener) {
-        this.innerListener = mListener;
+        innerListener = mListener;
+        innerListener.reviseLoop(isLoop);
     }
 
     //음악을 준비하는 메소드
@@ -297,7 +238,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (current_id == null || !current_id.equals(current)) {
             //새로운 음악
             log("start music..");
-            makeMusicOrder(pos); //음악 재생 순서를 만든다.
+            position = pos;
+
             preparedMusic();
         } else {
             if (mp.isPlaying()) {
@@ -316,7 +258,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         pt = new ProgressThread();
         pt.start();
 
-        startForeground(1, buildNotification(musics.get(order[position])));
+        startForeground(1, buildNotification(musics.get(position)));
     }
 
     private void pauseMusic() {
@@ -328,14 +270,14 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         mp.pause();
         handler.sendEmptyMessage(SEND_STOP);
 
-        startForeground(1, buildNotification(musics.get(order[position])));
+        startForeground(1, buildNotification(musics.get(position)));
     }
 
     @Override
     public void forwardMusic() {
         log("forward music...");
         //다음 곡
-        position += 1 % musics.size();
+        position = (position + 1) % musics.size();
         preparedMusic();
     }
 
@@ -358,7 +300,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         try {
             mp.reset();
-            mp.setDataSource(this, Uri.parse(musics.get(order[position]).getPath()));
+            mp.setDataSource(this, Uri.parse(musics.get(position).getPath()));
             mp.prepareAsync();
         } catch (IOException e) {
             e.printStackTrace();
@@ -370,16 +312,17 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         return this.musics;
     }
 
-    public void setAdapter(Adapter adapter){
+    public void setAdapter(Adapter adapter) {
         this.adapter = adapter;
         this.adapter.setMusic(musics);
     }
 
     @Override
     public void onItemMove(int fromPos, int targetPos) {
-        log("onItemMove..");
-        Collections.swap(musics,fromPos,targetPos);
-        adapter.notifyItemMoved(fromPos,targetPos);
+        log("from: " + fromPos + " to: " + targetPos);
+        Collections.swap(musics, fromPos, targetPos);
+        position = targetPos; //현재 옮기려는 음악 번호에 맞춰서 swap
+        adapter.notifyItemMoved(fromPos, targetPos);
     }
 
     @Override
@@ -387,6 +330,21 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("onItemDismiss..");
         musics.remove(pos);
         adapter.notifyItemRemoved(pos);
+    }
+
+    @Override
+    public void setLoop(boolean loop) {
+        isLoop = loop;
+        innerListener.reviseLoop(isLoop);
+
+        if (loop)
+            Toast.makeText(this, "반복 재생", Toast.LENGTH_SHORT).show();
+        else
+            Toast.makeText(this, "한번 재생", Toast.LENGTH_SHORT).show();
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("loop", isLoop);
+        editor.apply();
     }
 
     @Override
@@ -399,14 +357,18 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onPrepared(MediaPlayer mp) {
         log("onPrepared...");
 
-        current_id = musics.get(order[position]).getId();
-
+        current_id = musics.get(position).getId();
         mp.start();
-        innerListener.startMusic(musics.get(order[position]), true);
+
+        innerListener.startMusic(musics.get(position), true);
         pt = new ProgressThread();
         pt.start();
 
-        startForeground(1, buildNotification(musics.get(order[position])));
+        startForeground(1, buildNotification(musics.get(position)));
+
+     /*   SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("current",position);
+        editor.apply();*/
     }
 
     @Override
@@ -414,16 +376,20 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("onCompletion...");
         //노래가 완료된 경우
 
-        position = (position + 1) % musics.size();
+        if (isLoop) {
+            mp.seekTo(0); //현재 루프일 경우
+            mp.start();
+        } else {
+            position = (position + 1) % musics.size();
 
-        try {
-            mp.reset();
-            mp.setDataSource(this, Uri.parse(musics.get(order[position]).getPath()));
-            mp.prepareAsync();
-        } catch (IOException e) {
-            e.printStackTrace();
+            try {
+                mp.reset();
+                mp.setDataSource(this, Uri.parse(musics.get(position).getPath()));
+                mp.prepareAsync();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-
     }
 
     private Notification buildNotification(Music music) {
@@ -457,7 +423,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (bitmap != null)
             remoteViews.setImageViewBitmap(R.id.remote_view_image, bitmap);
         else
-            remoteViews.setImageViewResource(R.id.remote_view_image,R.drawable.album_white);
+            remoteViews.setImageViewResource(R.id.remote_view_image, R.drawable.album_white);
 
         if (mp.isPlaying()) {
             remoteViews.setImageViewResource(R.id.remote_view_play, R.drawable.pause_white);
@@ -536,11 +502,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         public void run() {
             log("===== Thread start =====");
             while (!stop) {
+                SystemClock.sleep(1000);
+
                 Message msg = new Message();
                 msg.what = SEND_MSG;
                 msg.arg1 = mp.getCurrentPosition();
                 handler.sendMessage(msg);
-                SystemClock.sleep(1000);
             }
             log("===== Thread stop =====");
         }
