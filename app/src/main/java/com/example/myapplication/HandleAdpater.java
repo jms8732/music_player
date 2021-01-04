@@ -6,4 +6,5 @@ public interface HandleAdpater {
     void judgeAction(Music music, int pos);
     void forwardMusic();
     void rewindMusic();
+    void setLoop(boolean loop);
 }

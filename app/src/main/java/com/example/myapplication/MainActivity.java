@@ -79,8 +79,6 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             log("Service connected...");
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-
-
             initialLayoutSetting(binder.getService());
         }
 
@@ -228,7 +226,8 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.musicProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-
+                if(fromUser)
+                    viewModel.setProgress(progress);
             }
 
             @Override

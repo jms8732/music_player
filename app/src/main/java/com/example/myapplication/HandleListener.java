@@ -66,4 +66,9 @@ public class HandleListener{
             }
         });
     }
+
+    public void onClickLoop(boolean status){
+        Log.d(TAG, "onClickLoop: ");
+        mAdapter.setLoop(!status);
+    }
 }
