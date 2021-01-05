@@ -121,6 +121,11 @@ public class MainViewModel extends AndroidViewModel implements InnerListener {
     }
 
     @Override
+    public void reviseThumbnailShow(boolean show) {
+        isPlaying.setValue(show);
+    }
+
+    @Override
     public void pauseMusic() {
         thumbnailPlay.setValue(false);
     }
