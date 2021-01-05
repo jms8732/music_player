@@ -64,11 +64,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private InnerListener innerListener;
     private Handler handler;
     private ProgressThread pt;
-    private String current_id;
+    private String current_id, channelId, channelName, channelDescription;
     private NotificationManager manager;
-    private String channelId, channelName, channelDescription;
     private NotificationChannel channel;
     private Adapter adapter;
+    private HeadPhoneReceiver headPhoneReceiver;
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -94,6 +94,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                     stopForeground(true);
                     if (!isActivityAlive()) //액티비티가 살아있지 않을 경우
                         stopSelf();
+                    break;
+                case PAUSE:
+                    if (mp.isPlaying())
+                        pauseMusic();
                     break;
             }
         }
@@ -121,6 +125,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         initialChannelSetting(); //Notification 채널 세팅
         registerReceiver(receiver, new IntentFilter(receiverName));
+
+        headPhoneReceiver = new HeadPhoneReceiver();
+        registerReceiver(headPhoneReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
 
         if (mp == null) {
             mp = new MediaPlayer();
@@ -154,11 +161,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         log("onStartCommand...");
-
-        if (position != -1) {
-            innerListener.startMusic(musics.get(position), mp.isPlaying());
-        }
-
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -167,12 +169,17 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("destroy");
         super.onDestroy();
         unregisterReceiver(receiver);
+        unregisterReceiver(headPhoneReceiver);
     }
 
 
-    public void setInnerListener(InnerListener mListener) {
+    public void initialSettings(InnerListener mListener) {
         innerListener = mListener;
         innerListener.reviseLoop(isLoop);
+
+        if (position != -1) {
+            innerListener.startMusic(musics.get(position), mp.isPlaying());
+        }
     }
 
     //음악을 준비하는 메소드
@@ -238,7 +245,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         if (current_id == null || !current_id.equals(current)) {
             //새로운 음악
             log("start music..");
-            position = pos;
+
+            if (pos != -1)
+                position = pos;
 
             preparedMusic();
         } else {
@@ -328,6 +337,18 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void onItemDismiss(int pos) {
         log("onItemDismiss..");
+
+        if (pos == position) {
+            //지우려는 노래가 현재 진행되고 있는 노래일 경우
+            if (mp.isPlaying())
+                mp.pause();
+            innerListener.reviseThumbnailShow(false);
+            stopForeground(true);
+
+            position = -1;
+            savePosition();
+        }
+
         musics.remove(pos);
         adapter.notifyItemRemoved(pos);
     }
@@ -344,6 +365,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean("loop", isLoop);
+        editor.apply();
+    }
+
+    private void savePosition() {
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("current", position);
         editor.apply();
     }
 
@@ -366,9 +393,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         startForeground(1, buildNotification(musics.get(position)));
 
-     /*   SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("current",position);
-        editor.apply();*/
+        savePosition();
     }
 
     @Override

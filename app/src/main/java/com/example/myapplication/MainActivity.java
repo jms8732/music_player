@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
 
     //레이아웃 초기 세팅
     private void initialLayoutSetting(final MusicService mService){
-        mService.setInnerListener(viewModel);
+        mService.initialSettings(viewModel);
         handleListener = new HandleListener(mService);
         Adapter adapter = new Adapter(getApplicationContext(), handleListener, viewModel);
 
