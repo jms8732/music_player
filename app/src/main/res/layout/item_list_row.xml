@@ -13,8 +13,8 @@
             name="holder"
             type="com.example.myapplication.Adapter.MyHolder" />
         <variable
-            name="viewModel"
-            type="com.example.myapplication.MainViewModel" />
+            name="musicView"
+            type="com.example.myapplication.MusicViewModel" />
         <import type="com.example.myapplication.Util"/>
         <import type="android.view.View"/>
     </data>

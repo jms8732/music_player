@@ -25,11 +25,6 @@ public class Util {
         long minute = (duration % 3600000) / 60000;
         long sec = ((duration % 3600000) % 60000) / 1000;
 
-        long remain = ((duration % 3600000) % 60000) % 1000;
-
-        if(remain > 0)
-            sec += 1;
-
         if (hour > 0)
             ret = String.format("%02d:%02d:%02d", hour, minute, sec);
         else

@@ -6,8 +6,8 @@
 
     <data>
         <variable
-            name="viewModel"
-            type="com.example.myapplication.MainViewModel" />
+            name="musicView"
+            type="com.example.myapplication.MusicViewModel" />
         <variable
             name="handler"
             type="com.example.myapplication.HandleListener" />
@@ -47,7 +47,7 @@
             app:transformation_duration="450"
             app:transformation_fitMode="auto"
             android:onClick="@{(view) -> handler.onTransform(view)}"
-            android:visibility="@{viewModel.isPlaying == true ? View.VISIBLE : View.GONE}"
+            android:visibility="@{musicView.oncePlay == true ? View.VISIBLE : View.GONE}"
             app:transformation_targetView="@+id/music_detail">
 
             <RelativeLayout
@@ -64,7 +64,7 @@
                     android:layout_marginRight="15dp"
                     android:adjustViewBounds="true"
                     android:scaleType="centerInside"
-                    android:loadUrl="@{viewModel.image}" />
+                    android:loadUrl="@{musicView.image}" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -81,7 +81,7 @@
                         android:ems="15"
                         android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
-                        android:text="@{viewModel.title}"
+                        android:text="@{musicView.title}"
                         android:textColor="@android:color/white"
                         android:textSize="13dp" />
 
@@ -92,7 +92,7 @@
                         android:ems="15"
                         android:marqueeRepeatLimit="marquee_forever"
                         android:singleLine="true"
-                        android:text="@{viewModel.artist}"
+                        android:text="@{musicView.artist}"
                         android:textColor="@android:color/white"
                         android:textSize="10dp" />
                 </LinearLayout>
@@ -106,8 +106,8 @@
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:scaleType="centerInside"
-                    android:playThumbnail="@{viewModel.thumbnailPlay}"
-                    android:onClick="@{() -> handler.onClick(viewModel.currentMusic)}"/>
+                    android:playThumbnail="@{musicView.play}"
+                    android:onClick="@{() -> handler.onClick(musicView.currentMusic)}"/>
 
             </RelativeLayout>
 
