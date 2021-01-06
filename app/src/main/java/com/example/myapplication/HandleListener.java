@@ -24,9 +24,8 @@ public class HandleListener{
     }
 
     public void onClick(Music music){
-        mAdapter.judgeAction(music,-1);
+        mAdapter.actionSetting(music,-1);
     }
-
     public void onForwardRewindClick(int status){
         if(status == Status.FORWARD){
             mAdapter.forwardMusic();
@@ -40,7 +39,7 @@ public class HandleListener{
     }
 
     public void onRecycleLayoutClick(Music music, Adapter.MyHolder holder){
-        mAdapter.judgeAction(music,holder.getAdapterPosition());
+        mAdapter.actionSetting(music,holder.getAdapterPosition());
     }
 
     public void onTransform(View view){

@@ -5,8 +5,8 @@
 
     <data>
         <variable
-            name="viewModel"
-            type="com.example.myapplication.MainViewModel" />
+            name="musicView"
+            type="com.example.myapplication.MusicViewModel" />
         <variable
             name="handler"
             type="com.example.myapplication.HandleListener" />
@@ -28,7 +28,7 @@
             android:layout_marginBottom="25dp"
             android:adjustViewBounds="true"
             android:scaleType="fitXY"
-            android:loadUrl="@{viewModel.image}"/>
+            android:loadUrl="@{musicView.image}"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -42,8 +42,8 @@
                 android:layout_height="wrap_content"
                 android:progressBackgroundTint="@android:color/white"
                 android:secondaryProgressTint="@android:color/white"
-                android:progress="@{viewModel.progress}"
-                android:max="@{viewModel.total_duration}"
+                android:progress="@{musicView.progressDuration}"
+                android:max="@{musicView.totalDuration}"
                 android:thumbTint="@android:color/holo_orange_dark" />
 
             <RelativeLayout
@@ -55,7 +55,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentLeft="true"
-                    android:text="@{Util.convertDuration(viewModel.progress)}"
+                    android:text="@{Util.convertDuration(musicView.progressDuration)}"
                     android:textColor="@android:color/white"
                     android:textSize="9dp" />
 
@@ -64,7 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
-                    android:text="@{Util.convertDuration(viewModel.total_duration)}"
+                    android:text="@{Util.convertDuration(musicView.totalDuration)}"
                     android:textColor="@android:color/white"
                     android:textSize="9dp" />
 
@@ -83,7 +83,7 @@
                     android:ellipsize="marquee"
                     android:marqueeRepeatLimit="marquee_forever"
                     android:singleLine="true"
-                    android:text="@{viewModel.title}"
+                    android:text="@{musicView.title}"
                     android:textColor="@android:color/white"
                     android:textSize="20dp"
                     android:textStyle="bold" />
@@ -94,7 +94,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
                     android:singleLine="true"
-                    android:text="@{viewModel.artist}"
+                    android:text="@{musicView.artist}"
                     android:textColor="@android:color/white"
                     android:textStyle="bold" />
 
@@ -138,8 +138,8 @@
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:playDetail="@{viewModel.thumbnailPlay}"
-                    android:onClick="@{() -> handler.onClick(viewModel.currentMusic)}"/>
+                    android:playDetail="@{musicView.play}"
+                    android:onClick="@{() -> handler.onClick(musicView.currentMusic)}"/>
 
                 <ImageView
                     android:id="@+id/fast_forward"
@@ -159,8 +159,8 @@
                     android:layout_weight="0.5"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:loadLoopImage="@{viewModel.loop}"
-                    android:onClick="@{() -> handler.onClickLoop(viewModel.loop)}"/>
+                    android:loadLoopImage="@{musicView.loop}"
+                    android:onClick="@{() -> handler.onClickLoop(musicView.loop)}"/>
 
             </LinearLayout>
 
@@ -182,7 +182,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:progress="@{viewModel.speaker}"
+                    android:progress="@{musicView.speaker}"
                     android:progressBackgroundTint="@android:color/white"
                     android:secondaryProgressTint="@android:color/white"
                     android:thumbTint="@android:color/holo_orange_dark" />

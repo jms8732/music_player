@@ -8,16 +8,12 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
@@ -25,49 +21,43 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
-import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelStoreOwner;
-import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
-
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, Status
         , HandleAdpater, ItemMoveCallback.ItemTouchHelperAdapter {
     private static final String TAG = "jms8732", receiverName = "com.example.service";
+    private static final int FORESERVICE = 1;
     private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    private Deque<Music> playList;
     private ArrayList<Music> musics;
     private MediaPlayer mp;
     private SharedPreferences prefs;
-    private int position;
     private boolean isSeq, isLoop;
-    private InnerListener innerListener;
-    private Handler handler;
+    private TimeHandler handler;
     private ProgressThread pt;
-    private String current_id, channelId, channelName, channelDescription;
+    private String channelId;
     private NotificationManager manager;
     private NotificationChannel channel;
     private Adapter adapter;
+    private Music playMusic;
+    private HandleListener handleListener;
+    private MusicViewModel musicViewModel;
     private HeadPhoneReceiver headPhoneReceiver;
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -121,13 +111,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         super.onCreate();
         log("create...");
         //서비스가 연결되면 음악 목록을 불러온다.
-        musics = preparedMusicList();
-
-        initialChannelSetting(); //Notification 채널 세팅
-        registerReceiver(receiver, new IntentFilter(receiverName));
-
-        headPhoneReceiver = new HeadPhoneReceiver();
-        registerReceiver(headPhoneReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
+        initialSettings();
 
         if (mp == null) {
             mp = new MediaPlayer();
@@ -136,77 +120,89 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             mp.setOnPreparedListener(this);
         }
 
+        handler = new TimeHandler(musicViewModel);
+    }
+
+    private void initialSettings() {
+        musics = preparedMusicList();
+        initialChannelSetting(); //Notification 채널 세팅
+        registerReceivers();
+        bringPreference();
+        initialConstructor();
+    }
+
+
+    private void initialConstructor() {
+        if (handleListener == null) {
+            handleListener = new HandleListener(this);
+        }
+
+        if (musicViewModel == null) {
+            musicViewModel = new MusicViewModel();
+        }
+
+        if (adapter == null) {
+            adapter = new Adapter(getApplicationContext(), handleListener, musicViewModel);
+            adapter.setMusic(musics);
+        }
+    }
+
+    public HandleListener getHandleListener() {
+        return this.handleListener;
+    }
+
+    public Adapter getAdapter() {
+        return this.adapter;
+    }
+
+    public MusicViewModel getMusicViewModel() {
+        return this.musicViewModel;
+    }
+
+
+    //Preference값을 가져오는 메소드
+    private void bringPreference() {
         prefs = getSharedPreferences("Music", MODE_PRIVATE);
         isSeq = prefs.getBoolean("sequential", true);
         isLoop = prefs.getBoolean("loop", false);
-        position = prefs.getInt("current", -1);
+    }
 
-        if (handler == null) {
-            handler = new Handler() {
-                @Override
-                public void handleMessage(@NonNull Message msg) {
-                    switch (msg.what) {
-                        case SEND_MSG:
-                            innerListener.reviseProgressbar(msg.arg1);
-                            break;
-                        case SEND_STOP:
-                            if (pt != null) pt.preparedStop();
-                            break;
-                    }
-                }
-            };
-        }
+    //리시버 등록
+    private void registerReceivers() {
+        registerReceiver(receiver, new IntentFilter(receiverName));
+        headPhoneReceiver = new HeadPhoneReceiver();
+        registerReceiver(headPhoneReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
+    }
+
+    private void unregisterReceivers() {
+        unregisterReceiver(receiver);
+        unregisterReceiver(headPhoneReceiver);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         log("onStartCommand...");
+
+        componentSetting();
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    private void componentSetting() {
+        musicViewModel.setLoop(isLoop);
     }
 
     @Override
     public void onDestroy() {
         log("destroy");
         super.onDestroy();
-        unregisterReceiver(receiver);
-        unregisterReceiver(headPhoneReceiver);
-    }
-
-
-    public void initialSettings(InnerListener mListener) {
-        innerListener = mListener;
-        innerListener.reviseLoop(isLoop);
-
-        if (position != -1) {
-            innerListener.startMusic(musics.get(position), mp.isPlaying());
-        }
+        unregisterReceivers();
     }
 
     //음악을 준비하는 메소드
     private ArrayList<Music> preparedMusicList() {
         log("preparedMusic...");
-        ArrayList<Music> ret;
-        DBHelper helper = new DBHelper(getApplicationContext());
-        SQLiteDatabase db = helper.getReadableDatabase();
+        ArrayList<Music> ret = initialMusicList();
 
-        Cursor cursor = db.rawQuery("select * from tb_m", null);
-        if (cursor.getCount() == 0) {
-            //DB에 데이터가 존재하지 않을 경우
-            return initialMusicList();
-        } else {
-            //DB에 데이터가 존재한 경우
-            ret = new ArrayList<>();
-            while (cursor.moveToNext()) {
-                String id = cursor.getString(0);
-                String title = cursor.getString(1);
-                String artist = cursor.getString(2);
-                int duration = cursor.getInt(3);
-                int albumid = cursor.getInt(4);
-                String path = cursor.getString(5);
-
-                ret.add(new Music(id, title, artist, duration, albumid, path));
-            }
-        }
         return ret;
     }
 
@@ -240,16 +236,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     @Override
-    public void judgeAction(Music music, int pos) {
-        String current = music.getId();
-        if (current_id == null || !current_id.equals(current)) {
-            //새로운 음악
-            log("start music..");
-
-            if (pos != -1)
-                position = pos;
-
-            preparedMusic();
+    public void actionSetting(Music music, int position) {
+        if (playMusic == null || !music.getId().equals(playMusic.getId())) {
+            //처음에 선택한 음악이 없거나 다른 음악을 선택한 경우
+            makePlayList(position);
+            beforeStartMusic();
         } else {
             if (mp.isPlaying()) {
                 pauseMusic();
@@ -259,78 +250,48 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         }
     }
 
+    private void makePlayList(int start) {
+        if (playList != null) {
+            playList.clear();
+            playList.addAll(musics.subList(start, musics.size()));
+        } else
+            playList = new LinkedList<>(musics.subList(start, musics.size()));
+    }
+
     private void restartMusic() {
         log("restart music...");
-        innerListener.restartMusic();
         mp.start();
-
-        pt = new ProgressThread();
-        pt.start();
-
-        startForeground(1, buildNotification(musics.get(position)));
+        playMusicSetting(true);
     }
 
     private void pauseMusic() {
-        if (mp.isPlaying())
-            mp.pause();
-
         log("pause music...");
-        innerListener.pauseMusic();
-        mp.pause();
         handler.sendEmptyMessage(SEND_STOP);
+        mp.pause();
 
-        startForeground(1, buildNotification(musics.get(position)));
+        playMusicSetting(false);
     }
 
     @Override
     public void forwardMusic() {
-        log("forward music...");
-        //다음 곡
-        position = (position + 1) % musics.size();
-        preparedMusic();
+        if (!playList.isEmpty())
+            beforeStartMusic();
     }
 
     @Override
     public void rewindMusic() {
-        log("rewind music...");
-        if (position - 1 < 0)
-            position = musics.size() - 1;
-        else
-            position -= 1;
-        preparedMusic();
-    }
-
-    //음악 준비
-    private void preparedMusic() {
-        if (mp.isPlaying()) {
-            mp.pause();
-            handler.sendEmptyMessage(SEND_STOP);
+        int position = musics.indexOf(playMusic);
+        if (position - 1 >= 0) {
+            makePlayList(position - 1);
+            beforeStartMusic();
         }
 
-        try {
-            mp.reset();
-            mp.setDataSource(this, Uri.parse(musics.get(position).getPath()));
-            mp.prepareAsync();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    public ArrayList<Music> getMusicList() {
-        return this.musics;
-    }
-
-    public void setAdapter(Adapter adapter) {
-        this.adapter = adapter;
-        this.adapter.setMusic(musics);
     }
 
     @Override
     public void onItemMove(int fromPos, int targetPos) {
         log("from: " + fromPos + " to: " + targetPos);
         Collections.swap(musics, fromPos, targetPos);
-        position = targetPos; //현재 옮기려는 음악 번호에 맞춰서 swap
         adapter.notifyItemMoved(fromPos, targetPos);
     }
 
@@ -338,39 +299,30 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onItemDismiss(int pos) {
         log("onItemDismiss..");
 
-        if (pos == position) {
-            //지우려는 노래가 현재 진행되고 있는 노래일 경우
+        if (playMusic.getId().equals(musics.get(pos).getId())) {
+            //현재 진행하는 음악과 동일한 경우
             if (mp.isPlaying())
                 mp.pause();
-            innerListener.reviseThumbnailShow(false);
-            stopForeground(true);
-
-            position = -1;
-            savePosition();
+            musicViewModel.setOncePlay(false);
         }
 
         musics.remove(pos);
+        stopForeground(true);
         adapter.notifyItemRemoved(pos);
     }
 
     @Override
     public void setLoop(boolean loop) {
+        musicViewModel.setLoop(loop);
         isLoop = loop;
-        innerListener.reviseLoop(isLoop);
 
-        if (loop)
+        if (isLoop)
             Toast.makeText(this, "반복 재생", Toast.LENGTH_SHORT).show();
         else
             Toast.makeText(this, "한번 재생", Toast.LENGTH_SHORT).show();
 
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean("loop", isLoop);
-        editor.apply();
-    }
-
-    private void savePosition() {
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("current", position);
         editor.apply();
     }
 
@@ -384,16 +336,48 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onPrepared(MediaPlayer mp) {
         log("onPrepared...");
 
-        current_id = musics.get(position).getId();
         mp.start();
 
-        innerListener.startMusic(musics.get(position), true);
-        pt = new ProgressThread();
-        pt.start();
+        musicViewModel.updateMusicView(playMusic);
+        playMusicSetting(true);
+    }
 
-        startForeground(1, buildNotification(musics.get(position)));
+    //음악을 실행한 후, 수행되는 메소드
+    private void playMusicSetting(boolean b) {
+        if (b) {
+            pt = new ProgressThread(mp, handler);
+            handler.setProgressThread(pt);
+            pt.start();
+        } else
+            handler.sendEmptyMessage(SEND_STOP);
 
-        savePosition();
+        musicViewModel.updatePlayButton(b);
+        startForeground(FORESERVICE, buildNotification(playMusic));
+    }
+
+    //음악 준비
+    private void beforeStartMusic() {
+        if (pt != null)
+            handler.sendEmptyMessage(SEND_STOP);
+
+        if (mp.isPlaying())
+            mp.pause();
+
+        if (!playList.isEmpty()) {
+            playMusic = playList.pollFirst();
+            musicViewModel.setCurrentMusic(playMusic);
+
+            try {
+                mp.reset();
+                mp.setDataSource(this, Uri.parse(playMusic.getPath()));
+                mp.prepare();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Toast.makeText(this, "Play list End...", Toast.LENGTH_SHORT).show();
+            startForeground(FORESERVICE,buildNotification(playMusic));
+        }
     }
 
     @Override
@@ -401,20 +385,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         log("onCompletion...");
         //노래가 완료된 경우
 
-        if (isLoop) {
-            mp.seekTo(0); //현재 루프일 경우
-            mp.start();
-        } else {
-            position = (position + 1) % musics.size();
-
-            try {
-                mp.reset();
-                mp.setDataSource(this, Uri.parse(musics.get(position).getPath()));
-                mp.prepareAsync();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        beforeStartMusic();
     }
 
     private Notification buildNotification(Music music) {
@@ -483,8 +454,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private void initialChannelSetting() {
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         channelId = "Music-Channel";
-        channelName = "Music player Test";
-        channelDescription = "First music player";
+        String channelName = "Music player Test";
+        String channelDescription = "First music player";
 
         channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription(channelDescription);
@@ -509,32 +480,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         mp.seekTo(progress);
     }
 
-
     public class MusicBinder extends Binder {
         public MusicService getService() {
             return MusicService.this;
-        }
-    }
-
-    private class ProgressThread extends Thread {
-        private boolean stop = false;
-
-        public void preparedStop() {
-            stop = true;
-        }
-
-        @Override
-        public void run() {
-            log("===== Thread start =====");
-            while (!stop) {
-                SystemClock.sleep(1000);
-
-                Message msg = new Message();
-                msg.what = SEND_MSG;
-                msg.arg1 = mp.getCurrentPosition();
-                handler.sendMessage(msg);
-            }
-            log("===== Thread stop =====");
         }
     }
 

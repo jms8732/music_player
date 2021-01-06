@@ -11,6 +11,11 @@ import android.widget.ImageView;
 
 import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBinderMapper;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.ForeignKey;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -20,7 +25,8 @@ import com.squareup.picasso.Picasso;
 import java.io.FileDescriptor;
 
 public class Music {
-    private String title, artist, path, id;
+    private String title, artist, path;
+    private String id;
     private int image, duration;
 
 
@@ -47,50 +53,42 @@ public class Music {
     public String getTitle() {
         return title;
     }
+    public void setTitle(String title) {
+        this.title = title;
+    }
 
     public int getImage() {
         return image;
     }
-
+    public void setImage(int image) {
+        this.image = image;
+    }
 
     public String getArtist() {
         return artist;
+    }
+    public void setArtist(String artist) {
+        this.artist = artist;
     }
 
     public int getDuration() {
         return duration;
     }
-
     public void setDuration(int duration) {
         this.duration = duration;
     }
 
+    public String getPath() {
+        return path;
+    }
     public void setPath(String path) {
         this.path = path;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setImage(int image) {
-        this.image = image;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setArtist(String artist) {
-        this.artist = artist;
-    }
-
-
     public String getId() {
         return id;
     }
-
-    public String getPath() {
-        return path;
+    public void setId(String id) {
+        this.id = id;
     }
 }

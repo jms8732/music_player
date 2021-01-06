@@ -1,35 +1,28 @@
 package com.example.myapplication;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.databinding.ItemListRowBinding;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.logging.Handler;
 
 public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
     private List<Music> music;
     private Context context;
     private HandleListener handleListener;
-    private MainViewModel viewModel;
+    private MusicViewModel musicViewModel;
 
-    public Adapter(Context context, HandleListener handler, MainViewModel viewModel){
+    public Adapter(Context context, HandleListener handler, MusicViewModel musicViewModel){
         this.context =context;
         this.handleListener = handler;
-        this.viewModel =viewModel;
+        this.musicViewModel = musicViewModel;
     }
 
     @Override
@@ -38,7 +31,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
         holder.binding.setMusic(m);
         holder.binding.setHandler(handleListener);
         holder.binding.setHolder(holder);
-        holder.binding.setViewModel(viewModel);
+        holder.binding.setMusicView(musicViewModel);
         holder.binding.executePendingBindings();
     }
 
