@@ -25,7 +25,6 @@ public class TimeHandler extends Handler implements  Status {
                 musicViewModel.setProgressDuration(msg.arg1);
                 break;
             case SEND_STOP:
-                musicViewModel.setProgressDuration(0);
                 musicViewModel.updatePlayButton(false);
                 pt.preparedStop();
                 break;

@@ -35,7 +35,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.MyHolder> {
         holder.binding.executePendingBindings();
     }
 
-    public void setMusic(ArrayList<Music> music){
+    public void setMusic(List<Music> music){
         this.music = music;
     }
 

@@ -7,4 +7,5 @@ public interface HandleAdpater {
     void forwardMusic();
     void rewindMusic();
     void setLoop(boolean loop);
+    void setRandom(boolean random);
 }

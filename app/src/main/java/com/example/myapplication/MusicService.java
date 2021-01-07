@@ -14,6 +14,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.icu.text.MessagePattern;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
@@ -31,6 +32,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +42,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, Status
         , HandleAdpater, ItemMoveCallback.ItemTouchHelperAdapter {
@@ -45,10 +50,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private static final int FORESERVICE = 1;
     private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     private Deque<Music> playList;
-    private ArrayList<Music> musics;
+    private List<Music> musics;
     private MediaPlayer mp;
     private SharedPreferences prefs;
-    private boolean isSeq, isLoop;
+    private boolean isRand, isLoop;
     private TimeHandler handler;
     private ProgressThread pt;
     private String channelId;
@@ -131,7 +136,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         initialConstructor();
     }
 
-
     private void initialConstructor() {
         if (handleListener == null) {
             handleListener = new HandleListener(this);
@@ -145,6 +149,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             adapter = new Adapter(getApplicationContext(), handleListener, musicViewModel);
             adapter.setMusic(musics);
         }
+
+        if (playList == null)
+            playList = new LinkedList<>();
+
     }
 
     public HandleListener getHandleListener() {
@@ -163,7 +171,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     //Preference값을 가져오는 메소드
     private void bringPreference() {
         prefs = getSharedPreferences("Music", MODE_PRIVATE);
-        isSeq = prefs.getBoolean("sequential", true);
+        isRand = prefs.getBoolean("rand", false);
         isLoop = prefs.getBoolean("loop", false);
     }
 
@@ -199,15 +207,22 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     //음악을 준비하는 메소드
-    private ArrayList<Music> preparedMusicList() {
+    private List<Music> preparedMusicList() {
         log("preparedMusic...");
-        ArrayList<Music> ret = initialMusicList();
+        LiveData<List<Music>> ret = null;
+        if(MusicDatabase.getInstance(getApplicationContext()).musicDao().getAll() == null){
+            log("initial prepared");
+            ret = initialMusicList();
+            MusicDatabase.getInstance(getApplicationContext()).musicDao().insertAll(musics);
+        }else
+            ret = MusicDatabase.getInstance(getApplicationContext()).musicDao().getAll();
+
 
         return ret;
     }
 
     //초기 음악 리스트
-    private ArrayList<Music> initialMusicList() {
+    private LiveData<List<Music>> initialMusicList() {
         ArrayList<Music> ret = new ArrayList<>();
 
         String[] proj = new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Artists.ARTIST,
@@ -237,7 +252,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
     @Override
     public void actionSetting(Music music, int position) {
-        if (playMusic == null || !music.getId().equals(playMusic.getId())) {
+        if (playList.isEmpty() || !music.getId().equals(playMusic.getId())) {
             //처음에 선택한 음악이 없거나 다른 음악을 선택한 경우
             makePlayList(position);
             beforeStartMusic();
@@ -251,11 +266,23 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     private void makePlayList(int start) {
-        if (playList != null) {
+        if (playList != null)
             playList.clear();
-            playList.addAll(musics.subList(start, musics.size()));
-        } else
-            playList = new LinkedList<>(musics.subList(start, musics.size()));
+
+        if (!isRand) {
+            //순차 재생 리스트
+            if (start < musics.size()) {
+                playList.addAll(musics.subList(start, musics.size()));
+                playList.addAll(musics.subList(0, start));
+            }
+        }else{
+            List<Music> temp = new ArrayList<>(musics);
+            temp.remove(start);
+
+            Collections.shuffle(temp);
+            playList.addAll(temp);
+            playList.addFirst(musics.get(start));
+        }
     }
 
     private void restartMusic() {
@@ -274,17 +301,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
     @Override
     public void forwardMusic() {
-        if (!playList.isEmpty())
-            beforeStartMusic();
+        playList.addLast(playMusic);
+        beforeStartMusic();
     }
 
     @Override
     public void rewindMusic() {
-        int position = musics.indexOf(playMusic);
-        if (position - 1 >= 0) {
-            makePlayList(position - 1);
-            beforeStartMusic();
-        }
+        playList.addFirst(playMusic);
+        playList.addFirst(playList.pollLast());
+        beforeStartMusic();
 
     }
 
@@ -304,11 +329,24 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             if (mp.isPlaying())
                 mp.pause();
             musicViewModel.setOncePlay(false);
+            stopForeground(true);
         }
 
         musics.remove(pos);
-        stopForeground(true);
         adapter.notifyItemRemoved(pos);
+    }
+
+    @Override
+    public void setRandom(boolean random) {
+        isRand = random;
+        musicViewModel.setRandom(isRand);
+
+        int start = musics.indexOf(playMusic);
+        makePlayList(start);
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("rand", isRand);
+        editor.apply();
     }
 
     @Override
@@ -335,9 +373,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void onPrepared(MediaPlayer mp) {
         log("onPrepared...");
-
         mp.start();
-
         musicViewModel.updateMusicView(playMusic);
         playMusicSetting(true);
     }
@@ -365,7 +401,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         if (!playList.isEmpty()) {
             playMusic = playList.pollFirst();
-            musicViewModel.setCurrentMusic(playMusic);
 
             try {
                 mp.reset();
@@ -375,8 +410,9 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 e.printStackTrace();
             }
         } else {
-            Toast.makeText(this, "Play list End...", Toast.LENGTH_SHORT).show();
-            startForeground(FORESERVICE,buildNotification(playMusic));
+            log("Play List End...");
+            pt.lastMusic();
+            startForeground(FORESERVICE, buildNotification(playMusic));
         }
     }
 
@@ -384,8 +420,13 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     public void onCompletion(MediaPlayer mp) {
         log("onCompletion...");
         //노래가 완료된 경우
-
-        beforeStartMusic();
+        if (isLoop) {
+            mp.seekTo(0);
+            mp.start();
+        } else {
+            playList.addLast(playMusic);
+            beforeStartMusic();
+        }
     }
 
     private Notification buildNotification(Music music) {
