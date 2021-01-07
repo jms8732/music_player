@@ -24,6 +24,7 @@ public class MusicViewModel {
     private MutableLiveData<Integer> progressDuration;
     private MutableLiveData<Music> currentMusic;
     private MutableLiveData<Boolean> loop;
+    private MutableLiveData<Boolean> random;
 
     public MusicViewModel() {
         this.title = new MutableLiveData<>();
@@ -36,12 +37,14 @@ public class MusicViewModel {
         this.progressDuration = new MutableLiveData<>();
         this.currentMusic = new MutableLiveData<>();
         this.loop = new MutableLiveData<>();
+        this.random = new MutableLiveData<>();
 
         play.setValue(false);
         oncePlay.setValue(false);
         progressDuration.setValue(0);
         totalDuration.setValue(0);
         loop.setValue(false);
+        random.setValue(false);
     }
 
     public MutableLiveData<String> getTitle() {
@@ -124,11 +127,21 @@ public class MusicViewModel {
         this.loop.setValue(loop);
     }
 
+    public MutableLiveData<Boolean> getRandom() {
+        return random;
+    }
+
+    public void setRandom(boolean b){
+        this.random.setValue(b);
+    }
+
     public void updateMusicView(Music music) {
+        progressDuration.setValue(0);
         title.setValue(music.getTitle());
         artist.setValue(music.getArtist());
         image.setValue(music.getImage());
         totalDuration.setValue(music.getDuration());
+        currentMusic.setValue(music);
 
         if(!oncePlay.getValue()) //처음에 한번도 실행하지 않았을 경우
             oncePlay.setValue(!oncePlay.getValue());
@@ -169,6 +182,14 @@ public class MusicViewModel {
             view.setImageResource(R.drawable.repeat_activate);
         else
             view.setImageResource(R.drawable.repeat_white);
+    }
+
+    @BindingAdapter("android:loadRepeatImage")
+    public static void loadRepeatImage(ImageView view, boolean b){
+        if(b){
+            view.setImageResource(R.drawable.shuffle_activate);
+        }else
+            view.setImageResource(R.drawable.shuffle_white);
     }
 
 }

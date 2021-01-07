@@ -116,7 +116,8 @@
                     android:layout_weight="0.5"
                     android:background="@android:color/transparent"
                     android:scaleType="centerInside"
-                    android:src="@drawable/shuffle_white" />
+                    android:loadRepeatImage="@{musicView.random}"
+                    android:onClick="@{()-> handler.onRandom(musicView.random)}"/>
 
 
                 <ImageView

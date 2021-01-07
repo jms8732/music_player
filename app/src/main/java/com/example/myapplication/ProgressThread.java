@@ -7,7 +7,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 public class ProgressThread extends Thread implements Status{
-    private boolean stop = false;
+    private boolean stop = false, last = false;
     private String TAG = "jms8732";
     private MediaPlayer mp;
     private Handler handler;
@@ -19,6 +19,10 @@ public class ProgressThread extends Thread implements Status{
 
     public void preparedStop() {
         stop = true;
+    }
+
+    public void lastMusic(){
+        last = true;
     }
 
     @Override
@@ -33,6 +37,12 @@ public class ProgressThread extends Thread implements Status{
             handler.sendMessage(msg);
         }
 
+        if(last){
+            Message msg = new Message();
+            msg.what = SEND_MSG;
+            msg.arg1 = 0;
+            handler.sendMessage(msg);
+        }
         Log.d(TAG,"===== Thread stop =====");
     }
 }
