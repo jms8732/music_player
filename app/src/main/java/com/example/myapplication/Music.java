@@ -27,16 +27,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.FileDescriptor;
 
-@Entity
 public class Music {
-    @NonNull
-    @PrimaryKey
     private String id;
     private String title, artist, path;
     private int image, duration;
 
 
-    public Music(@NotNull  String id, String title, String artist, int duration, int image, String path) {
+    public Music(  String id, String title, String artist, int duration, int image, String path) {
         this.id = id;
         this.title = title;
         this.artist = artist;
@@ -56,12 +53,11 @@ public class Music {
                 .into(view);
     }
 
-    @NonNull
     public String getId() {
         return id;
     }
 
-    public void setId(@NonNull String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
