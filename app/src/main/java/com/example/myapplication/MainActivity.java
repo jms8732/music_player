@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
             log("Service disconnected....");
         }
     };
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         log("onCreate...");
@@ -123,10 +124,18 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case 101:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    //퍼미션 허가된 경우
-                    connectionService();
+                boolean check = true;
+
+                for (int i = 0; i < grantResults.length; i++) {
+                    if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+                        check = false;
+                        break;
+                    }
                 }
+
+                if (check)
+                    connectionService();
+                break;
         }
     }
 
@@ -138,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //레이아웃 초기 세팅
-    private void initialLayoutSetting(final MusicService mService){
+    private void initialLayoutSetting(final MusicService mService) {
         ItemTouchHelper.Callback callback = new ItemMoveCallback(mService);
         ItemTouchHelper helper = new ItemTouchHelper(callback);
         helper.attachToRecyclerView(binding.recyclerView);
@@ -161,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.musicProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(fromUser)
+                if (fromUser)
                     musicViewModel.setProgressDuration(progress);
             }
 
@@ -179,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(fromUser)
+                if (fromUser)
                     musicViewModel.setSpeaker(progress);
             }
 

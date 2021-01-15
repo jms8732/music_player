@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.Notification;
@@ -8,23 +9,31 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.icu.text.MessagePattern;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.SystemClock;
+import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.RemoteViews;
@@ -38,6 +47,12 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.PicassoProvider;
+import com.squareup.picasso.Target;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.util.ArrayList;
@@ -48,12 +63,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
+import java.util.concurrent.ExecutionException;
 
 public class MusicService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnPreparedListener, Status
         , HandleAdpater, ItemMoveCallback.ItemTouchHelperAdapter {
     private static final String TAG = "jms8732", receiverName = "com.example.service";
     private static final int FORESERVICE = 1;
-    private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    // private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     private Deque<Music> playList;
     private List<Music> musics;
     private MediaPlayer mp;
@@ -133,14 +149,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         handler = new TimeHandler(musicViewModel);
     }
 
+
     private void initialSettings() {
         bringPreference();
-
         musics = preparedMusicList();
         initialChannelSetting(); //Notification 채널 세팅
         registerReceivers();
         initialConstructor();
     }
+
 
     private void initialConstructor() {
         if (handleListener == null) {
@@ -212,33 +229,33 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         unregisterReceivers();
     }
 
+
     //음악을 준비하는 메소드
     private List<Music> preparedMusicList() {
         log("preparedMusic...");
         ArrayList<Music> ret = new ArrayList<>();
 
-        String deleteList = prefs.getString("delete",null);
+        String deleteList = prefs.getString("delete", null);
 
         String[] proj = new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Artists.ARTIST,
                 MediaStore.Audio.AudioColumns.DURATION
                 , MediaStore.Audio.AudioColumns.DATA
-                , MediaStore.Audio.AlbumColumns.ALBUM_ID};
+                , MediaStore.Audio.Albums.ALBUM_ID};
 
         String selection = null;
         String[] selectionArgs = null;
 
         //todo 추가한 음악  표기
-        if(deleteList == null){
+        if (deleteList == null) {
             selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
             selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
-        }else{
+        } else {
             String[] split = deleteList.split(" ");
-            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=? and " + MediaStore.Audio.Media._ID + " not in (" +  TextUtils.join(", ",split) + ")";
+            selection = MediaStore.Files.FileColumns.MIME_TYPE + "=? and " + MediaStore.Audio.Media._ID + " not in (" + TextUtils.join(", ", split) + ")";
             selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
         }
 
-
-        Cursor cursor = getContentResolver().query(uri, proj, selection, selectionArgs, null);
+        Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, proj, selection, selectionArgs, null);
 
         while (cursor.moveToNext()) {
             String id = cursor.getString(0);
@@ -246,14 +263,16 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             String artist = cursor.getString(2);
             int duration = cursor.getInt(3);
             String path = cursor.getString(4);
-            int albumid = cursor.getInt(5);
+            long album_id = cursor.getLong(5);
 
-            ret.add(new Music(id, title, artist, duration, albumid, path));
-
+            ret.add(new Music(id, title, artist, duration, path,album_id));
         }
+
+        cursor.close();
 
         return ret;
     }
+
     @Override
     public void actionSetting(Music music, int position) {
         if (playList.isEmpty() || !music.getId().equals(playMusic.getId())) {
@@ -279,7 +298,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
                 playList.addAll(musics.subList(start, musics.size()));
                 playList.addAll(musics.subList(0, start));
             }
-        }else{
+        } else {
             List<Music> temp = new ArrayList<>(musics);
             temp.remove(start);
 
@@ -342,13 +361,13 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     //전에 지웠던 음악 id들들
-    private void saveDeleteList(String id){
+    private void saveDeleteList(String id) {
         StringBuilder sb = null;
-        String temp = prefs.getString("delete",null);
+        String temp = prefs.getString("delete", null);
 
-        if(temp == null)
+        if (temp == null)
             sb = new StringBuilder();
-        else{
+        else {
             sb = new StringBuilder(temp);
 
             if (temp.contains(id)) {
@@ -358,7 +377,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
         SharedPreferences.Editor editor = prefs.edit();
         sb.append(" " + id);
-        editor.putString("delete",sb.toString().trim());
+        editor.putString("delete", sb.toString().trim());
         editor.apply();
     }
 
@@ -481,11 +500,11 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         remoteViews.setTextViewText(R.id.remote_view_titie, music.getTitle());
         remoteViews.setTextViewText(R.id.remote_view_artist, music.getArtist());
 
-        Bitmap bitmap = Util.getAlbumart(this, music.getImage());
+        Bitmap image = Util.getInstance().getAlbumart(music.getPath());
 
-        if (bitmap != null)
-            remoteViews.setImageViewBitmap(R.id.remote_view_image, bitmap);
-        else
+        if (image != null) {
+            remoteViews.setImageViewBitmap(R.id.remote_view_image,image);
+        } else
             remoteViews.setImageViewResource(R.id.remote_view_image, R.drawable.album_white);
 
         if (mp.isPlaying()) {

@@ -1,18 +1,36 @@
 package com.example.myapplication;
 
+import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaMetadata;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
+import android.util.Base64;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 
 //연산에 필요한 메소드
 public class Util {
+    private static Util instance = null;
 
-    private Util(){
+    public static synchronized Util getInstance(){
+        if(instance == null){
+            instance = new Util();
+            return instance;
+        }
+
+        return instance;
+    }
+
+    private Util() {
 
     }
 
@@ -34,23 +52,22 @@ public class Util {
 
 
     //mp3의 섬네일
-    public static Bitmap getAlbumart(Context context, long album_id) {
-        Bitmap bm = null;
-        try {
-            final Uri sArtworkUri = Uri
-                    .parse("content://media/external/audio/albumart");
+    public Bitmap getAlbumart( String path) {
+        if(path != null) {
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(path);
+            byte[] data = mmr.getEmbeddedPicture();
+            mmr.release();
 
-            Uri uri = ContentUris.withAppendedId(sArtworkUri, album_id);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize *= 5;
 
-            ParcelFileDescriptor pfd = context.getContentResolver()
-                    .openFileDescriptor(uri, "r");
+            Bitmap bitmap = BitmapFactory.decodeByteArray(data,0,data.length,options);
 
-            if (pfd != null) {
-                FileDescriptor fd = pfd.getFileDescriptor();
-                bm = BitmapFactory.decodeFileDescriptor(fd);
-            }
-        } catch (Exception e) {
+            if(bitmap != null)
+                return bitmap;
+
         }
-        return bm;
+        return null;
     }
 }
