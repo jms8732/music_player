@@ -1,8 +1,18 @@
 package com.example.myapplication;
 
 import android.app.Application;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.TransitionDrawable;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Message;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -12,12 +22,21 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
+import com.squareup.picasso.MemoryPolicy;
+import com.squareup.picasso.Picasso;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MusicViewModel {
     private MutableLiveData<String> title;
     private MutableLiveData<String> artist;
     private MutableLiveData<Boolean> play;
-    private MutableLiveData<Integer> image;
+    private MutableLiveData<Long> albumId;
     private MutableLiveData<Integer> totalDuration;
     private MutableLiveData<Boolean> oncePlay;
     private MutableLiveData<Integer> speaker;
@@ -30,7 +49,7 @@ public class MusicViewModel {
         this.title = new MutableLiveData<>();
         this.artist = new MutableLiveData<>();
         this.play = new MutableLiveData<>();
-        this.image = new MutableLiveData<>();
+        this.albumId = new MutableLiveData<>();
         this.totalDuration = new MutableLiveData<>();
         this.oncePlay = new MutableLiveData<>();
         this.speaker = new MutableLiveData<>();
@@ -71,12 +90,12 @@ public class MusicViewModel {
         this.play.setValue(thumbnailPlay);
     }
 
-    public MutableLiveData<Integer> getImage() {
-        return image;
+    public MutableLiveData<Long> getAlbumId() {
+        return albumId;
     }
 
-    public void setImage(int image) {
-        this.image.setValue(image);
+    public void setAlbumId(Long albumId) {
+        this.albumId.setValue(albumId);
     }
 
     public MutableLiveData<Integer> getTotalDuration() {
@@ -131,7 +150,7 @@ public class MusicViewModel {
         return random;
     }
 
-    public void setRandom(boolean b){
+    public void setRandom(boolean b) {
         this.random.setValue(b);
     }
 
@@ -139,23 +158,34 @@ public class MusicViewModel {
         progressDuration.setValue(0);
         title.setValue(music.getTitle());
         artist.setValue(music.getArtist());
-        image.setValue(music.getImage());
+        albumId.setValue(music.getAlbum_id());
         totalDuration.setValue(music.getDuration());
         currentMusic.setValue(music);
 
-        if(!oncePlay.getValue()) //처음에 한번도 실행하지 않았을 경우
+        if (!oncePlay.getValue()) //처음에 한번도 실행하지 않았을 경우
             oncePlay.setValue(!oncePlay.getValue());
     }
 
-    public void updatePlayButton(boolean b){
+    public void updatePlayButton(boolean b) {
         play.setValue(b);
     }
 
+    @BindingAdapter("android:loadImage")
+    public static void loadImage(final ImageView view, long albumId) {
+        Picasso.get()
+                .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),albumId))
+                .fit()
+                .memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE)
+                .placeholder(R.drawable.album_white)
+                .into(view);
+    }
+
     @BindingAdapter("android:loadUrl")
-    public static void loadUrl(ImageView view, int resId) {
-        Glide.with(view.getContext())
-                .load(Util.getAlbumart(view.getContext(), resId))
-                .thumbnail(0.4f)
+    public static void loadUrl(ImageView view, long albumId) {
+        Picasso.get()
+                .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),albumId))
+                .fit()
+                .memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE)
                 .placeholder(R.drawable.album_white)
                 .into(view);
     }
@@ -185,10 +215,10 @@ public class MusicViewModel {
     }
 
     @BindingAdapter("android:loadRepeatImage")
-    public static void loadRepeatImage(ImageView view, boolean b){
-        if(b){
+    public static void loadRepeatImage(ImageView view, boolean b) {
+        if (b) {
             view.setImageResource(R.drawable.shuffle_activate);
-        }else
+        } else
             view.setImageResource(R.drawable.shuffle_white);
     }
 

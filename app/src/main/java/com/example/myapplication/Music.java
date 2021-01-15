@@ -4,8 +4,11 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaMetadata;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -25,32 +28,24 @@ import com.squareup.picasso.Picasso;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileDescriptor;
+import java.util.GregorianCalendar;
 
 public class Music {
     private String id;
     private String title, artist, path;
-    private int image, duration;
+    private int duration;
+    private long album_id;
 
-
-    public Music(  String id, String title, String artist, int duration, int image, String path) {
+    public Music(String id, String title, String artist, int duration, String path, long album_id) {
         this.id = id;
         this.title = title;
         this.artist = artist;
         this.duration = duration;
-        this.image = image;
         this.path = path;
-    }
-
-    @BindingAdapter("android:loadImage")
-    public static void loadImage(ImageView view, int resId) {
-        Picasso.get()
-                .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"), resId))
-                .fit()
-                .centerCrop()
-                .memoryPolicy(MemoryPolicy.NO_CACHE,MemoryPolicy.NO_STORE)
-                .placeholder(R.drawable.album_white)
-                .into(view);
+        this.album_id = album_id;
     }
 
     public String getId() {
@@ -85,19 +80,19 @@ public class Music {
         this.path = path;
     }
 
-    public int getImage() {
-        return image;
-    }
-
-    public void setImage(int image) {
-        this.image = image;
-    }
-
     public int getDuration() {
         return duration;
     }
 
     public void setDuration(int duration) {
         this.duration = duration;
+    }
+
+    public long getAlbum_id() {
+        return album_id;
+    }
+
+    public void setAlbum_id(long album_id) {
+        this.album_id = album_id;
     }
 }
