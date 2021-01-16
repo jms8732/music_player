@@ -9,6 +9,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
@@ -265,10 +266,12 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             String path = cursor.getString(4);
             long album_id = cursor.getLong(5);
 
+
             ret.add(new Music(id, title, artist, duration, path,album_id));
         }
 
         cursor.close();
+
 
         return ret;
     }
@@ -500,10 +503,10 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         remoteViews.setTextViewText(R.id.remote_view_titie, music.getTitle());
         remoteViews.setTextViewText(R.id.remote_view_artist, music.getArtist());
 
-        Bitmap image = Util.getInstance().getAlbumart(music.getPath());
+        Uri image =ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),music.getAlbum_id());
 
         if (image != null) {
-            remoteViews.setImageViewBitmap(R.id.remote_view_image,image);
+            remoteViews.setImageViewUri(R.id.remote_view_image,image);
         } else
             remoteViews.setImageViewResource(R.id.remote_view_image, R.drawable.album_white);
 
