@@ -49,25 +49,4 @@ public class Util {
             ret = String.format("%02d:%02d", minute, sec);
         return ret;
     }
-
-
-    //mp3의 섬네일
-    public Bitmap getAlbumart( String path) {
-        if(path != null) {
-            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-            mmr.setDataSource(path);
-            byte[] data = mmr.getEmbeddedPicture();
-            mmr.release();
-
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize *= 5;
-
-            Bitmap bitmap = BitmapFactory.decodeByteArray(data,0,data.length,options);
-
-            if(bitmap != null)
-                return bitmap;
-
-        }
-        return null;
-    }
 }

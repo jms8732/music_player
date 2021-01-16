@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         binding.setLifecycleOwner(this);
         binding.recyclerView.setHasFixedSize(true);
+        binding.recyclerView.setNestedScrollingEnabled(false);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
         binding.musicDetail.getRoot().setOnTouchListener(new OnSwipeTouchListener(getApplicationContext()) {
@@ -159,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
         handleListener.setItemTouchHelper(helper);
 
         binding.recyclerView.setAdapter(adapter);
-        binding.recyclerView.setItemViewCacheSize(adapter.getItemCount());
+        //binding.recyclerView.setItemViewCacheSize(2);
         binding.setHandler(handleListener);
 
         binding.setMusicView(musicViewModel);

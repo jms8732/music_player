@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:height="30dp"
+        android:right="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#80FFD351"/>
+            <corners android:radius="10dp"/>
+        </shape>
+    </item>
+
+    <item android:right="1dp" android:drawable="@drawable/unfold_more_white"
+        android:height="30dp">
+    </item>
+</layer-list>
