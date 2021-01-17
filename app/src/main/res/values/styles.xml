@@ -5,8 +5,13 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="customThumb">
+        <item name="android:scrollbars">vertical</item>
+        <item name="android:fadeScrollbars">true</item>
+        <item name="android:scrollbarThumbVertical">@drawable/custom_scrollbar_thumb</item>
+        <item name="android:scrollbarTrackVertical">@drawable/custom_scrollbar_track</item>
     </style>
 
 </resources>
