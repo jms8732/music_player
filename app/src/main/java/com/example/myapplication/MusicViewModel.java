@@ -222,4 +222,5 @@ public class MusicViewModel {
             view.setImageResource(R.drawable.shuffle_white);
     }
 
+
 }

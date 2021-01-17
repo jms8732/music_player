@@ -18,16 +18,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/background_dark"
-        android:orientation="vertical"
-        android:padding="15dp">
+        android:orientation="vertical">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
+            style="@style/customThumb"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="vertical"
-            android:scrollbarTrackVertical="@drawable/custom_scrollbar_track"
-            android:scrollbarThumbVertical="@drawable/custom_scrollbar_thumb"
             app:layout_constrainedHeight="true"
             app:layout_constraintBottom_toTopOf="@+id/thumbnail_show"
             app:layout_constraintTop_toTopOf="parent"

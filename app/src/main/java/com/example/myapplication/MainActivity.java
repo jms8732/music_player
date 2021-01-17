@@ -29,12 +29,14 @@ public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
     private long pressedTime = 0;
     private AudioManager audioManager;
+    private MusicService mService;
     private ServiceConnection conn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             log("Service connected...");
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-            initialLayoutSetting(binder.getService());
+            mService = binder.getService();
+            initialLayoutSetting();
         }
 
         @Override
@@ -148,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //레이아웃 초기 세팅
-    private void initialLayoutSetting(final MusicService mService) {
+    private void initialLayoutSetting() {
         ItemTouchHelper.Callback callback = new ItemMoveCallback(mService);
         ItemTouchHelper helper = new ItemTouchHelper(callback);
         helper.attachToRecyclerView(binding.recyclerView);
@@ -189,8 +191,9 @@ public class MainActivity extends AppCompatActivity {
         binding.musicDetail.speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser)
-                    musicViewModel.setSpeaker(progress);
+                if (fromUser) {
+                    controlVolume(progress);
+                }
             }
 
             @Override
@@ -206,6 +209,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void controlVolume(int vol){
+        mService.getMusicViewModel().setSpeaker(vol);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_PLAY_SOUND);
+    }
+
     //todo 개선필
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -217,8 +225,7 @@ public class MainActivity extends AppCompatActivity {
             else
                 ++vol;
 
-
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_SHOW_UI);
+            controlVolume(vol);
             return true;
         }
         return super.onKeyDown(keyCode, event);
