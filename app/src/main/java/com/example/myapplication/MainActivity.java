@@ -18,7 +18,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -55,6 +57,11 @@ public class MainActivity extends AppCompatActivity {
         binding.recyclerView.setHasFixedSize(true);
         binding.recyclerView.setNestedScrollingEnabled(false);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+
+        DividerItemDecoration decoration  = new DividerItemDecoration(getApplicationContext(),DividerItemDecoration.VERTICAL);
+        decoration.setDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.custom_divider,null));
+
+        binding.recyclerView.addItemDecoration(decoration);
 
         binding.musicDetail.getRoot().setOnTouchListener(new OnSwipeTouchListener(getApplicationContext()) {
             @Override
@@ -211,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void controlVolume(int vol){
         mService.getMusicViewModel().setSpeaker(vol);
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_PLAY_SOUND);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_PLAY_SOUND | AudioManager.FLAG_SHOW_UI);
     }
 
     //todo 개선필

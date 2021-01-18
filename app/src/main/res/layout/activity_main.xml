@@ -17,20 +17,36 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/background_dark"
+        android:background="@android:color/black"
         android:orientation="vertical">
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:id="@+id/edit_query"
+            app:layout_constraintTop_toTopOf="parent"
+            android:hint="재생목록 검색"
+            android:textColorHint="@android:color/white"
+            android:inputType="text"
+            android:paddingLeft="10dp"
+            android:includeFontPadding="true"
+            android:textSize="15dp"
+            android:singleLine="true"
+            android:textColor="@android:color/white"/>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             style="@style/customThumb"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="15dp"
             android:scrollbars="vertical"
+            android:background="@drawable/custom_recyclerview_background"
             app:layout_constrainedHeight="true"
             app:layout_constraintBottom_toTopOf="@+id/thumbnail_show"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0"
-            tools:listitem="@layout/item_list_row" />
+            app:layout_constraintTop_toBottomOf="@+id/edit_query"
+            tools:listitem="@layout/item_list_row"
+            tools:ignore="MissingConstraints" />
 
         <include
             android:id="@+id/music_detail"
@@ -43,29 +59,30 @@
             android:id="@+id/thumbnail_show"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:onClick="@{(view) -> handler.onTransform(view)}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/recycler_view"
             app:transformation_duration="450"
             app:transformation_fitMode="auto"
-            android:onClick="@{(view) -> handler.onTransform(view)}"
-            android:visibility="@{musicView.oncePlay == true ? View.VISIBLE : View.GONE}"
             app:transformation_targetView="@+id/music_detail">
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/background_dark">
+                android:layout_height="75dp"
+                android:layout_marginBottom="5dp"
+                android:background="@drawable/custom_thumbnail_show">
 
                 <ImageView
                     android:id="@+id/thumbnail_music_image"
-                    android:layout_width="75dp"
-                    android:layout_height="75dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
                     android:layout_alignParentLeft="true"
                     android:layout_centerVertical="true"
+                    android:layout_marginLeft="10dp"
                     android:layout_marginRight="15dp"
                     android:adjustViewBounds="true"
-                    android:scaleType="centerInside"
-                    android:loadUrl="@{musicView.albumId}" />
+                    android:loadUrl="@{musicView.albumId}"
+                    android:scaleType="centerInside" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -106,9 +123,9 @@
                     android:layout_centerVertical="true"
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
-                    android:scaleType="centerInside"
+                    android:onClick="@{() -> handler.onClick(musicView.currentMusic)}"
                     android:playThumbnail="@{musicView.play}"
-                    android:onClick="@{() -> handler.onClick(musicView.currentMusic)}"/>
+                    android:scaleType="centerInside" />
 
             </RelativeLayout>
 
