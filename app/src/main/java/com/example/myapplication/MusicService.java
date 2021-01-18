@@ -70,7 +70,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         , HandleAdpater, ItemMoveCallback.ItemTouchHelperAdapter {
     private static final String TAG = "jms8732", receiverName = "com.example.service";
     private static final int FORESERVICE = 1;
-    // private static final Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
     private Deque<Music> playList;
     private List<Music> musics;
     private MediaPlayer mp;
@@ -158,7 +157,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         registerReceivers();
         initialConstructor();
     }
-
 
     private void initialConstructor() {
         if (handleListener == null) {

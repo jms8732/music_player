@@ -39,6 +39,8 @@ public class HandleListener{
     }
 
     public void onRecycleLayoutClick(Music music, Adapter.MyHolder holder){
+        holder.binding.equalizer.stopBars();
+        holder.binding.equalizer.animateBars();
         mAdapter.actionSetting(music,holder.getAdapterPosition());
     }
 

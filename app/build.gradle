@@ -36,7 +36,7 @@ dependencies {
     implementation "com.github.skydoves:transformationlayout:1.0.6"
     implementation 'com.squareup.picasso:picasso:2.71828'
     implementation 'androidx.room:room-runtime:2.2.6'
-    implementation 'com.marshalchen.ultimaterecyclerview:library:0.9.0'
+    implementation 'com.github.claucookie.miniequalizer:library:1.0.0'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
