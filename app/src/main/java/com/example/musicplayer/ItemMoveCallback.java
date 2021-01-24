@@ -12,16 +12,14 @@ public class ItemMoveCallback extends ItemTouchHelper.Callback {
 
     @Override
     public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
-        int flagDrag = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
         int flagSwipe = ItemTouchHelper.START | ItemTouchHelper.END;
 
-        return makeMovementFlags(flagDrag,flagSwipe);
+        return makeMovementFlags(0,flagSwipe);
     }
 
     @Override
     public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-        adapter.onItemMove(viewHolder.getAdapterPosition(), target.getAdapterPosition());
-        return true;
+        return false;
     }
 
     @Override
@@ -40,7 +38,6 @@ public class ItemMoveCallback extends ItemTouchHelper.Callback {
     }
 
     public interface ItemTouchHelperAdapter{
-        void onItemMove(int fromPos, int targetPos);
         void onItemDismiss(int pos);
     }
 }

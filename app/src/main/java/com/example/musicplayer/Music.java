@@ -1,7 +1,7 @@
 package com.example.musicplayer;
 
 public class Music {
-    private int duration;
+    private int duration ;
     private long album;
     private String id, title, artist, path;
     private boolean visible;
@@ -15,6 +15,7 @@ public class Music {
         this.path = path;
         this.visible = false;
     }
+
 
     public boolean isVisible() {
         return visible;

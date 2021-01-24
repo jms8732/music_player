@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -31,7 +32,7 @@ import com.skydoves.transformationlayout.TransformationCompat;
 
 import javax.crypto.Mac;
 
-public class MainActivity extends AppCompatActivity  implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private final String TAG = "jms8732";
     private ActivityMainBinding binding;
     private MusicService mService;
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
-            mService = ((MusicService.MyBinder)service).getService();
+            mService = ((MusicService.MyBinder) service).getService();
 
             connection();
         }
@@ -55,11 +56,34 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
     @Override
     protected void onDestroy() {
+        Log.d(TAG, "onDestroy");
         super.onDestroy();
+
+        if (!checkServiceAlive()) {
+            Intent intent = new Intent(this, MusicService.class);
+            stopService(intent);
+            unbindService(conn);
+        }
+    }
+
+    private boolean checkServiceAlive() {
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (MusicService.class.getName().equals(service.service.getClassName())) {
+                //현재 foreground 서비스가 진행되고 있는 경우
+                if (service.foreground) {
+                    Log.d(TAG, MusicService.class.getName());
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -69,12 +93,12 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
     //서비스 연결
     private void startConnection() {
-        Intent intent = new Intent(this,MusicService.class);
+        Intent intent = new Intent(this, MusicService.class);
         startService(intent);
-        bindService(intent,conn,0);
+        bindService(intent, conn, 0);
     }
 
-    private void connection(){
+    private void connection() {
         Log.d(TAG, "connection");
         ItemTouchHelper.Callback callback = new ItemMoveCallback(mService);
         ItemTouchHelper helper = new ItemTouchHelper(callback);
@@ -82,7 +106,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
         MacroListener listener = new MacroListener(mService);
         MusicViewModel model = mService.getModel();
-        MusicAdapter adapter = new MusicAdapter(listener,model, helper);
+        MusicAdapter adapter = new MusicAdapter(listener, model, helper);
 
         binding.setListener(listener);
         binding.setModel(model);
@@ -91,8 +115,8 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         binding.primaryRecyclerview.setNestedScrollingEnabled(false);
         binding.primaryRecyclerview.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-        DividerItemDecoration decoration  = new DividerItemDecoration(getApplicationContext(),DividerItemDecoration.VERTICAL);
-        decoration.setDrawable(ResourcesCompat.getDrawable(getResources(),R.drawable.custom_divider,null));
+        DividerItemDecoration decoration = new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL);
+        decoration.setDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.custom_divider, null));
 
         binding.primaryDetail.setListener(listener);
         binding.primaryDetail.setModel(model);
@@ -113,14 +137,14 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         seekViewSettings();
     }
 
-    private void seekViewSettings(){
-        manager = (AudioManager)getSystemService(AUDIO_SERVICE);
+    private void seekViewSettings() {
+        manager = (AudioManager) getSystemService(AUDIO_SERVICE);
         binding.primaryDetail.speaker.setProgress(manager.getStreamVolume(AudioManager.STREAM_MUSIC));
         binding.primaryDetail.speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(fromUser)
-                    manager.setStreamVolume(AudioManager.STREAM_MUSIC,progress, AudioManager.FLAG_SHOW_UI);
+                if (fromUser)
+                    manager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, AudioManager.FLAG_SHOW_UI);
             }
 
             @Override
@@ -137,7 +161,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
         binding.primaryDetail.musicProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(fromUser){
+                if (fromUser) {
                     mService.seekTo(progress, false);
                 }
             }
@@ -165,7 +189,7 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
                 ++vol;
 
             binding.primaryDetail.speaker.setProgress(vol);
-            manager.setStreamVolume(AudioManager.STREAM_MUSIC,vol,AudioManager.FLAG_SHOW_UI);
+            manager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, AudioManager.FLAG_SHOW_UI);
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -174,14 +198,14 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
 
     @Override
     public void onClick(View v) {
-        if(v == binding.primaryThumbnail)
+        if (v == binding.primaryThumbnail)
             binding.primaryThumbnail.startTransform();
     }
 
     //퍼미션 체크
     private void checkPermission() {
         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-        && ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED)
+                && ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED)
             startConnection();
         else
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.FOREGROUND_SERVICE}, 101);
@@ -216,7 +240,6 @@ public class MainActivity extends AppCompatActivity  implements View.OnClickList
             }
         }
     }
-
 
 
 }
