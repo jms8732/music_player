@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Queue;
 
 public class MusicService extends Service implements MacroAdapter, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnPreparedListener
-, ItemMoveCallback.ItemTouchHelperAdapter {
+        , ItemMoveCallback.ItemTouchHelperAdapter {
     private final String TAG = "jms8732";
     private final String receiverName = "com.example.service";
     private List<Music> musicList;
@@ -56,11 +56,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int mode = intent.getIntExtra("mode",0);
+            int mode = intent.getIntExtra("mode", 0);
 
-            switch (mode){
+            switch (mode) {
                 case 1:
-                    if(mPlayer.isPlaying())
+                    if (mPlayer.isPlaying())
                         rawPause();
                     else
                         rawReStart();
@@ -74,15 +74,17 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
                 case -3:
                     rawPause();
                     stopForeground(true);
-                    if (!isActivityAlive()) //액티비티가 살아있지 않을 경우
+                    if (!checkActivityAlive()) { //액티비티가 살아있지 않을 경우
                         stopSelf();
+                        mPlayer.release();
+                    }
                     break;
             }
         }
     };
 
     //엑티비티가 살아있는 지 판단하는 메소드
-    private boolean isActivityAlive() {
+    private boolean checkActivityAlive() {
         ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> tasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
 
@@ -109,7 +111,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         loadInstance();
         loadMusicList();
         initialChannelSetting();
-        registerReceiver(receiver,new IntentFilter(receiverName));
+        registerReceiver(receiver, new IntentFilter(receiverName));
 
         setModel();
     }
@@ -120,6 +122,8 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         model.setArtist(playingMusic.getArtist());
         model.setAlbum(playingMusic.getAlbum());
         model.setTotalDuration(playingMusic.getDuration());
+        model.setSequential(seq);
+        model.setLoop(loop);
     }
 
     private void loadInstance() {
@@ -147,7 +151,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         if (musicList == null)
             musicList = new ArrayList<>();
 
-        String deleteList = prefs.getString("delete", null);
+        String deletes = prefs.getString("delete", null);
 
         String[] proj = new String[]{MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Artists.ARTIST,
                 MediaStore.Audio.AudioColumns.DURATION
@@ -157,12 +161,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         String selection = null;
         String[] selectionArgs = null;
 
-        //todo 추가한 음악  표기
-        if (deleteList == null) {
+        if (deletes == null) {
             selection = MediaStore.Files.FileColumns.MIME_TYPE + "=?";
             selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
         } else {
-            String[] split = deleteList.split(" ");
+            String[] split = deletes.split(" ");
             selection = MediaStore.Files.FileColumns.MIME_TYPE + "=? and " + MediaStore.Audio.Media._ID + " not in (" + TextUtils.join(", ", split) + ")";
             selectionArgs = new String[]{MimeTypeMap.getSingleton().getMimeTypeFromExtension("mp3")};
         }
@@ -178,16 +181,17 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             long album_id = cursor.getLong(5);
 
             musicList.add(new Music(id, duration, album_id, title, artist, path));
+
         }
 
         int played = prefs.getInt("played", 0);
-        playingMusic = musicList.get(played);
         createPlayList(played);
 
         cursor.close();
     }
 
     private void createPlayList(int start) {
+        Log.d(TAG, "createPlayList");
         if (!playList.isEmpty())
             playList.clear();
 
@@ -195,7 +199,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         if (seq) {
             count = start;
-            playList.addAll(musicList.subList(start+1, musicList.size()));
+            playList.addAll(musicList.subList(start + 1, musicList.size()));
             playList.addAll(musicList.subList(0, start));
         } else {
             count = 0;
@@ -219,17 +223,26 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     @Override
     public void onItemClick(int pos) {
         int playMusicNum = musicList.indexOf(playingMusic);
-
+ 
         if (pos >= 0) {
             if (pos != playMusicNum) {
-                //서로 다른 item을 클릭한 경우
+                //서로 다른 item을 클릭하거나 처음 음악을 실행할 경우,
+                model.setStatus(false);
+                musicList.get(playMusicNum).setVisible(false);
+                mAdapter.notifyItemChanged(playMusicNum);
+
                 createPlayList(pos);
                 rawStart();
             } else {
-                if (mPlayer.isPlaying()) {
-                    rawPause();
-                } else {
-                    rawReStart();
+                try {
+                    int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO); //에러가 발생하면 현재 음악을 한번도 실행하지 않았다는 의미
+                    if (mPlayer.isPlaying()) {
+                        rawPause();
+                    } else {
+                        rawReStart();
+                    }
+                } catch (Exception e) {
+                    rawStart();
                 }
             }
         } else if (pos == -2 || pos == -3) {
@@ -245,9 +258,10 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             } else {
                 seq = !seq;
                 model.setSequential(seq);
-
                 createPlayList(playMusicNum);
             }
+
+            saveStatus();
         } else {
             try {
                 int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO); //에러가 발생하면 현재 음악을 한번도 실행하지 않았다는 의미
@@ -273,11 +287,12 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         handler.sendEmptyMessage(0);
         model.setStatus(false);
 
-        Notification notification = Util.getInstance().buildNotification(getApplicationContext(),playingMusic,false);
-        startForeground(1,notification);
+        Notification notification = Util.getInstance().buildNotification(getApplicationContext(), playingMusic, false);
+        startForeground(1, notification);
     }
 
     private void rawStart() {
+        Log.d(TAG, "rawStart");
         if (thread != null) {
             handler.setThread(thread);
             handler.sendEmptyMessage(0);
@@ -285,7 +300,6 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         try {
             mPlayer.reset();
-            //playingMusic = playList.poll();
             mPlayer.setDataSource(getApplicationContext(), Uri.parse(playingMusic.getPath()));
             mPlayer.prepareAsync();
         } catch (Exception e) {
@@ -303,12 +317,15 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         thread.start();
 
         int playMusicNum = musicList.indexOf(playingMusic);
-        musicList.get(playMusicNum).setVisible(true);
-        mAdapter.notifyItemChanged(playMusicNum);
-        model.setStatus(true);
 
-        Notification notification = Util.getInstance().buildNotification(getApplicationContext(),playingMusic,true);
-        startForeground(1,notification);
+        if(playMusicNum != -1) {
+            musicList.get(playMusicNum).setVisible(true);
+            mAdapter.notifyItemChanged(playMusicNum);
+            model.setStatus(true);
+        }
+
+        Notification notification = Util.getInstance().buildNotification(getApplicationContext(), playingMusic, true);
+        startForeground(1, notification);
     }
 
     private void rawRewind() {
@@ -320,8 +337,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             //이전에 실행한 음악 뷰 갱신
             model.setStatus(false);
             int playMusicNum = musicList.indexOf(playingMusic);
-            musicList.get(playMusicNum).setVisible(false);
-            mAdapter.notifyItemChanged(playMusicNum);
+
+            if (playMusicNum != -1) {
+                musicList.get(playMusicNum).setVisible(false);
+                mAdapter.notifyItemChanged(playMusicNum);
+            }
 
             playList.addFirst(playingMusic);
             playingMusic = playList.pollLast();
@@ -338,8 +358,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             //이전에 실행한 음악 뷰 갱신
             model.setStatus(false);
             int playMusicNum = musicList.indexOf(playingMusic);
-            musicList.get(playMusicNum).setVisible(false);
-            mAdapter.notifyItemChanged(playMusicNum);
+
+            if (playMusicNum != -1) {
+                musicList.get(playMusicNum).setVisible(false);
+                mAdapter.notifyItemChanged(playMusicNum);
+            }
 
             playList.addLast(playingMusic);
             playingMusic = playList.poll();
@@ -355,16 +378,62 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         model.setCurrentDuration(progress);
     }
 
-    @Override
-    public void onItemMove(int fromPos, int targetPos) {
-        Collections.swap(musicList,fromPos,targetPos);
-        mAdapter.notifyItemMoved(fromPos,targetPos);
-    }
 
     @Override
-    public void onItemDismiss(int pos){
-        musicList.remove(pos);
-        mAdapter.notifyItemRemoved(pos);
+    public void onItemDismiss(int pos) {
+        Log.d(TAG, "onItemDismiss");
+
+        if (playingMusic.getId().equals(musicList.get(pos).getId())) {
+            //현재 진행하고 있는 음악과 동일한 경우
+            if (mPlayer.isPlaying()) {
+                model.setStatus(false);
+                musicList.get(pos).setVisible(false);
+                mAdapter.notifyItemChanged(pos);
+
+                mPlayer.pause();
+            }
+
+            //다음 곡으로 화면 대체
+            playingMusic = playList.pollFirst();
+            rawStart();
+            setModel();
+
+
+            saveDeleteList(musicList.get(pos).getId());
+
+            musicList.remove(pos);
+            mAdapter.notifyItemRemoved(pos);
+        } else {
+            //실행 중인 음악이 아닌 경우, 플레이 리스트 재설정
+            saveDeleteList(musicList.get(pos).getId());
+
+            musicList.remove(pos);
+            mAdapter.notifyItemRemoved(pos);
+
+            int start = musicList.indexOf(playingMusic);
+            createPlayList(start);
+        }
+    }
+
+    //전에 지웠던 음악 id들
+    private void saveDeleteList(String id) {
+        StringBuilder sb = null;
+        String temp = prefs.getString("delete", null);
+
+        if (temp == null)
+            sb = new StringBuilder();
+        else {
+            if (temp.contains(id)) {
+                return;
+            }
+
+            sb = new StringBuilder(temp);
+        }
+
+        SharedPreferences.Editor editor = prefs.edit();
+        sb.append(" " + id);
+        editor.putString("delete", sb.toString().trim());
+        editor.apply();
     }
 
     @Override
@@ -420,10 +489,24 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         Log.d(TAG, "onPrepared");
 
         rawReStart();
+        saveMusic();
 
-        Notification notification = Util.getInstance().buildNotification(getApplicationContext(),playingMusic,true);
-        startForeground(1,notification);
+        Notification notification = Util.getInstance().buildNotification(getApplicationContext(), playingMusic, true);
+        startForeground(1, notification);
         setModel();
+    }
+
+    private void saveStatus(){
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("loop",loop);
+        editor.putBoolean("seq",seq);
+        editor.apply();
+    }
+
+    private void saveMusic(){
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("played",musicList.indexOf(playingMusic));
+        editor.apply();
     }
 
     @Nullable
