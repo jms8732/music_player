@@ -18,6 +18,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.MediaStore;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -25,7 +26,10 @@ import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.core.text.TextUtilsCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.musicplayer.databinding.ActivityMainBinding;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +55,8 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     private int count = 0;
     private NotificationManager manager;
     private NotificationChannel channel;
-    private boolean loop, seq;
+    private boolean loop, seq, search;
+    private HeadPhoneReceiver headPhoneReceiver;
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -59,6 +64,10 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             int mode = intent.getIntExtra("mode", 0);
 
             switch (mode) {
+                case 0:
+                    if (mPlayer.isPlaying())
+                        rawPause();
+                    break;
                 case 1:
                     if (mPlayer.isPlaying())
                         rawPause();
@@ -112,6 +121,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         loadMusicList();
         initialChannelSetting();
         registerReceiver(receiver, new IntentFilter(receiverName));
+        registerReceiver(headPhoneReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
 
         setModel();
     }
@@ -142,6 +152,9 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         if (playList == null)
             playList = new LinkedList<>();
+
+        if (headPhoneReceiver == null)
+            headPhoneReceiver = new HeadPhoneReceiver();
 
         loop = prefs.getBoolean("loop", false);
         seq = prefs.getBoolean("seq", true);
@@ -220,32 +233,61 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         mAdapter.setMusicList(musicList);
     }
 
+    public void filter(CharSequence sequence){
+        ArrayList<Music> temp =new ArrayList<>();
+
+        for(Music m : musicList){
+           if(m.getTitle().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
+                temp.add(m);
+            }
+
+           if(m.getArtist().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
+               temp.add(m);
+           }
+        }
+
+        mAdapter.setMusicList(temp);
+        mAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onItemClick(Music music) {
+        int previous = musicList.indexOf(playingMusic);
+        int current = musicList.indexOf(music);
+
+        if (previous != current) {
+            //서로 다른 item을 클릭하거나 처음 음악을 실행할 경우,
+            model.setStatus(false);
+            musicList.get(previous).setVisible(false);
+            mAdapter.notifyItemChanged(previous);
+
+            createPlayList(current);
+            rawStart();
+        } else {
+            try {
+                int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO); //에러가 발생하면 현재 음악을 한번도 실행하지 않았다는 의미
+                if (mPlayer.isPlaying()) {
+                    rawPause();
+                } else {
+                    rawReStart();
+                }
+            } catch (Exception e) {
+                rawStart();
+            }
+        }
+
+        Intent intent = new Intent("com.example.activity");
+        sendBroadcast(intent);
+
+        mAdapter.setMusicList(musicList);
+        mAdapter.notifyDataSetChanged();
+    }
+
     @Override
     public void onItemClick(int pos) {
         int playMusicNum = musicList.indexOf(playingMusic);
- 
-        if (pos >= 0) {
-            if (pos != playMusicNum) {
-                //서로 다른 item을 클릭하거나 처음 음악을 실행할 경우,
-                model.setStatus(false);
-                musicList.get(playMusicNum).setVisible(false);
-                mAdapter.notifyItemChanged(playMusicNum);
 
-                createPlayList(pos);
-                rawStart();
-            } else {
-                try {
-                    int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO); //에러가 발생하면 현재 음악을 한번도 실행하지 않았다는 의미
-                    if (mPlayer.isPlaying()) {
-                        rawPause();
-                    } else {
-                        rawReStart();
-                    }
-                } catch (Exception e) {
-                    rawStart();
-                }
-            }
-        } else if (pos == -2 || pos == -3) {
+        if (pos == -2 || pos == -3) {
             //rewind or forward를 클릭했을 시
             if (pos == -2)
                 rawRewind();
@@ -318,7 +360,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         int playMusicNum = musicList.indexOf(playingMusic);
 
-        if(playMusicNum != -1) {
+        if (playMusicNum != -1) {
             musicList.get(playMusicNum).setVisible(true);
             mAdapter.notifyItemChanged(playMusicNum);
             model.setStatus(true);
@@ -455,8 +497,6 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             rawForward();
         }
     }
-
-
     @TargetApi(Build.VERSION_CODES.O)
     private void initialChannelSetting() {
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -477,6 +517,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     public void onDestroy() {
         Log.d(TAG, "[Service] onDestroy");
         unregisterReceiver(receiver);
+        unregisterReceiver(headPhoneReceiver);
     }
 
     @Override
@@ -496,16 +537,16 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         setModel();
     }
 
-    private void saveStatus(){
+    private void saveStatus() {
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean("loop",loop);
-        editor.putBoolean("seq",seq);
+        editor.putBoolean("loop", loop);
+        editor.putBoolean("seq", seq);
         editor.apply();
     }
 
-    private void saveMusic(){
+    private void saveMusic() {
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putInt("played",musicList.indexOf(playingMusic));
+        editor.putInt("played", musicList.indexOf(playingMusic));
         editor.apply();
     }
 

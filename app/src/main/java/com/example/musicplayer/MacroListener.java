@@ -13,8 +13,11 @@ public class MacroListener {
         this.mAdapter = adapter;
     }
 
-    public void rawItemClick(int pos) {
-       mAdapter.onItemClick(pos);
+    public void rawItemClick(Music m) {
+        mAdapter.onItemClick(m);
+    }
+    public void rawItemClick(int pos){
+        mAdapter.onItemClick(pos);
     }
 
 }
