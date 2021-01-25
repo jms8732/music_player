@@ -16,7 +16,9 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:focusableInTouchMode="true"
+        android:focusable="true">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/primary_layout"
@@ -26,13 +28,15 @@
             android:background="@android:color/background_dark">
 
             <EditText
-                android:id="@+id/primary_searchBar"
+                android:id="@+id/primary_searchView"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:layout_marginTop="4dp"
+                android:paddingLeft="15dp"
                 android:hint="재생목록 검색"
                 android:inputType="text"
                 android:singleLine="true"
+                android:background="@drawable/custom_thumbnail_layout"
                 app:layout_constraintBottom_toTopOf="@+id/primary_recyclerview"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -43,13 +47,13 @@
                 style="@style/customThumb"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:layout_marginBottom="5dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp"
                 app:layout_constrainedHeight="true"
                 app:layout_constraintBottom_toTopOf="@+id/primary_thumbnail"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/primary_searchBar"
+                app:layout_constraintTop_toBottomOf="@+id/primary_searchView"
                 app:layout_constraintVertical_chainStyle="packed"
                 tools:listitem="@layout/list_row" />
 

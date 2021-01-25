@@ -2,6 +2,7 @@ package com.example.musicplayer;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
@@ -14,16 +15,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.Manifest;
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -38,13 +46,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicService mService;
     private long pressedTime = 0;
     private AudioManager manager;
+    private InputMethodManager methodManager;
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            binding.primarySearchView.clearFocus();
+            binding.primarySearchView.setText("");
+            methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(),0);
+        }
+    };
 
     private ServiceConnection conn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
             mService = ((MusicService.MyBinder) service).getService();
-
+            registerReceiver(receiver,new IntentFilter("com.example.activity"));
             connection();
         }
 
@@ -64,6 +81,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             stopService(intent);
             unbindService(conn);
         }
+
+        unregisterReceiver(receiver);
     }
 
     private boolean checkServiceAlive() {
@@ -134,6 +153,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        binding.primarySearchView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                mService.filter(s);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+        methodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
         seekViewSettings();
     }
 

@@ -22,6 +22,12 @@
             </intent-filter>
         </activity>
         <service android:name=".MusicService"/>
+        <receiver android:name=".HeadPhoneReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_HEADSET_PLUG"/>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
