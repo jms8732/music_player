@@ -84,6 +84,8 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
                     rawPause();
                     stopForeground(true);
                     if (!checkActivityAlive()) { //액티비티가 살아있지 않을 경우
+                        handler.sendEmptyMessage(0);
+
                         stopSelf();
                         mPlayer.release();
                     }
@@ -118,12 +120,13 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             prefs = getSharedPreferences("music", MODE_PRIVATE);
 
         loadInstance();
-        loadMusicList();
         initialChannelSetting();
         registerReceiver(receiver, new IntentFilter(receiverName));
-        registerReceiver(headPhoneReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
 
-        setModel();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction(Intent.ACTION_MEDIA_BUTTON);
+        registerReceiver(headPhoneReceiver, filter);
     }
 
     private void setModel() {
@@ -163,6 +166,8 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     private void loadMusicList() {
         if (musicList == null)
             musicList = new ArrayList<>();
+        else
+            musicList.clear();
 
         String deletes = prefs.getString("delete", null);
 
@@ -233,15 +238,14 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         mAdapter.setMusicList(musicList);
     }
 
+    //검색
     public void filter(CharSequence sequence){
         ArrayList<Music> temp =new ArrayList<>();
 
         for(Music m : musicList){
            if(m.getTitle().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
                 temp.add(m);
-            }
-
-           if(m.getArtist().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
+            }else if(m.getArtist().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
                temp.add(m);
            }
         }
@@ -279,7 +283,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         Intent intent = new Intent("com.example.activity");
         sendBroadcast(intent);
 
-        mAdapter.setMusicList(musicList);
+     //   mAdapter.setMusicList(musicList);
         mAdapter.notifyDataSetChanged();
     }
 
@@ -480,6 +484,18 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand");
+        loadMusicList();
+        setModel();
+
+        if(mPlayer.isPlaying()) {
+            playingMusic.setVisible(true);
+            model.setStatus(true);
+        }else {
+            playingMusic.setVisible(false);
+            model.setStatus(false);
+        }
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -516,6 +532,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     @Override
     public void onDestroy() {
         Log.d(TAG, "[Service] onDestroy");
+
         unregisterReceiver(receiver);
         unregisterReceiver(headPhoneReceiver);
     }

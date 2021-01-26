@@ -28,12 +28,16 @@ public class DurationThread extends Thread{
     public void run() {
         Log.d(TAG, "=====start======");
         while(!stop){
-            SystemClock.sleep(1000);
-            Message msg = new Message();
-            msg.what = 1;
-            msg.arg1 = mPlayer.getCurrentPosition();
+            try {
+                SystemClock.sleep(1000);
+                Message msg = new Message();
+                msg.what = 1;
+                msg.arg1 = mPlayer.getCurrentPosition();
 
-            handler.sendMessage(msg);
+                handler.sendMessage(msg);
+            }catch(IllegalStateException e){
+                stop = true;
+            }
         }
         Log.d(TAG, "=====stop=====");
     }
