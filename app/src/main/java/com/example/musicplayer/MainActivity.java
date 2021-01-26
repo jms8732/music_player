@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onReceive(Context context, Intent intent) {
             binding.primarySearchView.clearFocus();
             binding.primarySearchView.setText("");
-            methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(),0);
+            methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);
         }
     };
 
@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
             mService = ((MusicService.MyBinder) service).getService();
-            registerReceiver(receiver,new IntentFilter("com.example.activity"));
+            registerReceiver(receiver, new IntentFilter("com.example.activity"));
             connection();
         }
 
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        methodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+        methodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         seekViewSettings();
     }
 
@@ -259,7 +259,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onBackPressed() {
-        if (binding.primaryThumbnail.isTransformed())
+        Log.d(TAG, "onBackPressed: " + binding.primarySearchView.hasFocus());
+        if (binding.primarySearchView.hasFocus()) {
+            //EditText가 포커싱되 있는 경우
+            methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);
+            binding.primarySearchView.clearFocus();
+        } else if (binding.primaryThumbnail.isTransformed())
             binding.primaryThumbnail.finishTransform();
         else {
             if (pressedTime == 0) {
