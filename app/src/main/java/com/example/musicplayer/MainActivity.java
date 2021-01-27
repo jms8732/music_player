@@ -259,7 +259,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onBackPressed() {
-        Log.d(TAG, "onBackPressed: " + binding.primarySearchView.hasFocus());
         if (binding.primarySearchView.hasFocus()) {
             //EditText가 포커싱되 있는 경우
             methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);

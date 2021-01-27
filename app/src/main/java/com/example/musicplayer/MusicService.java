@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
@@ -19,7 +20,10 @@ import android.os.Build;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
@@ -239,15 +243,28 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     }
 
     //검색
-    public void filter(CharSequence sequence){
-        ArrayList<Music> temp =new ArrayList<>();
+    public void filter(CharSequence sequence) {
+        ArrayList<Music> temp = new ArrayList<>();
 
-        for(Music m : musicList){
-           if(m.getTitle().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
+        String tar = String.valueOf(sequence).toLowerCase();
+        Log.d(TAG, "Target: " + tar);
+        for (Music m : musicList) {
+            m.getTitle().clearSpans();
+            m.getArtist().clearSpans();
+
+            if (m.getTitle().toString().toLowerCase().contains(tar) || m.getArtist().toString().toLowerCase().contains(tar)) {
+                if (m.getTitle().toString().toLowerCase().contains(tar)) {
+                    int start = TextUtils.indexOf(m.getTitle().toString().toLowerCase(),sequence);
+                    m.getTitle().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")),start,start+tar.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+
+                if (m.getArtist().toString().toLowerCase().contains(tar)) {
+                    int start =TextUtils.indexOf(m.getArtist().toString().toLowerCase(),sequence);
+                    m.getArtist().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")),start,start+tar.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                }
                 temp.add(m);
-            }else if(m.getArtist().toLowerCase().contains(String.valueOf(sequence).toLowerCase())){
-               temp.add(m);
-           }
+            }
         }
 
         mAdapter.setMusicList(temp);
@@ -283,7 +300,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         Intent intent = new Intent("com.example.activity");
         sendBroadcast(intent);
 
-     //   mAdapter.setMusicList(musicList);
+        for (Music m : musicList) {
+            m.getTitle().clearSpans();
+            m.getArtist().clearSpans();
+        }
+        //   mAdapter.setMusicList(musicList);
         mAdapter.notifyDataSetChanged();
     }
 
@@ -488,10 +509,10 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         loadMusicList();
         setModel();
 
-        if(mPlayer.isPlaying()) {
+        if (mPlayer.isPlaying()) {
             playingMusic.setVisible(true);
             model.setStatus(true);
-        }else {
+        } else {
             playingMusic.setVisible(false);
             model.setStatus(false);
         }
@@ -513,6 +534,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
             rawForward();
         }
     }
+
     @TargetApi(Build.VERSION_CODES.O)
     private void initialChannelSetting() {
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
