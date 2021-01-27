@@ -1,17 +1,20 @@
 package com.example.musicplayer;
 
+import android.text.SpannableStringBuilder;
+
 public class Music {
     private int duration ;
     private long album;
-    private String id, title, artist, path;
+    private SpannableStringBuilder title, artist;
+    private String id, path;
     private boolean visible;
 
     public Music(String id, int duration, long album, String title, String artist, String path) {
         this.id = id;
         this.duration = duration;
         this.album = album;
-        this.title = title;
-        this.artist = artist;
+        this.title = new SpannableStringBuilder(title);
+        this.artist = new SpannableStringBuilder(artist);
         this.path = path;
         this.visible = false;
     }
@@ -57,19 +60,19 @@ public class Music {
         this.album = album;
     }
 
-    public String getTitle() {
+    public SpannableStringBuilder getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
+    public void setTitle(SpannableStringBuilder title) {
         this.title = title;
     }
 
-    public String getArtist() {
+    public SpannableStringBuilder getArtist() {
         return artist;
     }
 
-    public void setArtist(String artist) {
+    public void setArtist(SpannableStringBuilder artist) {
         this.artist = artist;
     }
 }

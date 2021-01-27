@@ -45,6 +45,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/primary_recyclerview"
                 style="@style/customThumb"
+                android:background="@drawable/custom_recyclerview_background"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -71,12 +72,12 @@
 
                 <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="75dp">
+                    android:layout_height="60dp">
 
                     <ImageView
                         android:id="@+id/thumbnail_music_image"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="55dp"
+                        android:layout_height="55dp"
                         android:layout_alignParentLeft="true"
                         android:layout_centerVertical="true"
                         android:layout_marginLeft="10dp"

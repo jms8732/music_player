@@ -9,6 +9,8 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.IBinder;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -28,8 +30,8 @@ import kotlin.jvm.internal.markers.KMutableCollection;
 
 public class MusicViewModel {
     private final static String TAG = "jms8732";
-    private MutableLiveData<String> title;
-    private MutableLiveData<String> artist;
+    private MutableLiveData<Spannable> title;
+    private MutableLiveData<Spannable> artist;
     private MutableLiveData<Long> album;
     private MutableLiveData<Boolean> status;
     private MutableLiveData<Boolean> loop;
@@ -81,11 +83,11 @@ public class MusicViewModel {
         this.totalDuration.setValue(totalDuration);
     }
 
-    public MutableLiveData<String> getTitle() {
+    public MutableLiveData<Spannable> getTitle() {
         return title;
     }
 
-    public MutableLiveData<String> getArtist() {
+    public MutableLiveData<Spannable> getArtist() {
         return artist;
     }
 
@@ -93,11 +95,11 @@ public class MusicViewModel {
         return album;
     }
 
-    public void setTitle(String title) {
+    public void setTitle(SpannableStringBuilder title) {
         this.title.setValue(title);
     }
 
-    public void setArtist(String artist) {
+    public void setArtist(SpannableStringBuilder artist) {
         this.artist.setValue(artist);
     }
     public void setAlbum(long album) {
@@ -116,7 +118,6 @@ public class MusicViewModel {
     public static void loadThumbnail(ImageView view, long album){
         Picasso.get()
                 .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
-                .fit()
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .into(view);
     }
