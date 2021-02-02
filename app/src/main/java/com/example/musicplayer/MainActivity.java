@@ -21,9 +21,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -50,9 +52,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            binding.primarySearchView.clearFocus();
-            binding.primarySearchView.setText("");
-            methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);
+            String action = intent.getStringExtra("mode");
+
+            if (action.equals("ACTION_PREPARED")) {
+                int pos = intent.getIntExtra("pos", -1);
+
+                if (pos == -1) {
+
+                } else {
+                    binding.primaryRecyclerview.smoothScrollToPosition(pos);
+                }
+            } else if (action.equals("ACTION_CLICK")) {
+                binding.primarySearchView.clearFocus();
+                binding.primarySearchView.setText("");
+                methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);
+            }
         }
     };
 
@@ -106,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         checkPermission();
     }
@@ -134,14 +149,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         binding.primaryRecyclerview.setNestedScrollingEnabled(false);
         binding.primaryRecyclerview.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-        DividerItemDecoration decoration = new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL);
-        decoration.setDrawable(ResourcesCompat.getDrawable(getResources(), R.drawable.custom_divider, null));
+        SharedPreferences prefs = getSharedPreferences("music",MODE_PRIVATE);
+        int pos = prefs.getInt("played",0);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                binding.primaryRecyclerview.scrollToPosition(pos);
+            }
+        },100);
+
+
+        DividerItemDecorator decorator = new DividerItemDecorator(ResourcesCompat.getDrawable(getResources(), R.drawable.custom_divider, null));
 
         binding.primaryDetail.setListener(listener);
         binding.primaryDetail.setModel(model);
         binding.primaryThumbnail.setOnClickListener(this);
 
-        binding.primaryRecyclerview.addItemDecoration(decoration);
+        binding.primaryRecyclerview.addItemDecoration(decorator);
         binding.primaryRecyclerview.setAdapter(adapter);
         mService.setAdapter(adapter);
 
@@ -156,7 +181,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         binding.primarySearchView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
             }
 
             @Override
@@ -170,12 +194,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        binding.primarySearchView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    binding.primaryThumbnail.setVisibility(View.GONE);
+                } else
+                    binding.primaryThumbnail.setVisibility(View.VISIBLE);
+            }
+        });
+
         methodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        manager = (AudioManager) getSystemService(AUDIO_SERVICE);
         seekViewSettings();
     }
 
     private void seekViewSettings() {
-        manager = (AudioManager) getSystemService(AUDIO_SERVICE);
         binding.primaryDetail.speaker.setProgress(manager.getStreamVolume(AudioManager.STREAM_MUSIC));
         binding.primaryDetail.speaker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -261,8 +295,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onBackPressed() {
         if (binding.primarySearchView.hasFocus()) {
             //EditText가 포커싱되 있는 경우
+            binding.primarySearchView.setText("");
             methodManager.hideSoftInputFromWindow(binding.primarySearchView.getWindowToken(), 0);
             binding.primarySearchView.clearFocus();
+
         } else if (binding.primaryThumbnail.isTransformed())
             binding.primaryThumbnail.finishTransform();
         else {

@@ -15,16 +15,15 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/darker_gray"
+        android:background="@android:color/black"
         android:id="@+id/music_detail_layout"
-        android:orientation="vertical"
-        android:padding="25dp">
+        android:orientation="vertical">
 
         <ImageView
             android:id="@+id/music_image"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="25dp"
+            android:layout_marginBottom="10dp"
             android:adjustViewBounds="true"
             android:loadThumbnail="@{model.album}"/>
 
@@ -46,7 +45,9 @@
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp">
 
                 <TextView
                     android:id="@+id/current_duration"
@@ -72,7 +73,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="15dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp">
 
                 <TextView
                     android:id="@+id/music_title"

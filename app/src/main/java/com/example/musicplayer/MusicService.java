@@ -6,42 +6,36 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.MediaStore;
-import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
 import android.util.Log;
-import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-import androidx.core.text.TextUtilsCompat;
-import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.musicplayer.databinding.ActivityMainBinding;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 public class MusicService extends Service implements MacroAdapter, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnPreparedListener
         , ItemMoveCallback.ItemTouchHelperAdapter {
@@ -59,8 +53,9 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
     private int count = 0;
     private NotificationManager manager;
     private NotificationChannel channel;
-    private boolean loop, seq, search;
-    private HeadPhoneReceiver headPhoneReceiver;
+    private boolean loop, seq;
+    private HeadPlugReceiver headPlugReceiver;
+    private HeadMediaReceiver headMediaReceiver;
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
@@ -73,10 +68,15 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
                         rawPause();
                     break;
                 case 1:
-                    if (mPlayer.isPlaying())
-                        rawPause();
-                    else
-                        rawReStart();
+                    try {
+                        int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO);
+                        if (mPlayer.isPlaying())
+                            rawPause();
+                        else
+                            rawReStart();
+                    }catch(Exception e){
+                        rawStart();
+                    }
                     break;
                 case -1:
                     rawForward();
@@ -125,12 +125,23 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         loadInstance();
         initialChannelSetting();
+        registerReceivers();
+    }
+
+    private void registerReceivers(){
+        Log.d(TAG, "registerReceivers");
         registerReceiver(receiver, new IntentFilter(receiverName));
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_HEADSET_PLUG);
-        filter.addAction(Intent.ACTION_MEDIA_BUTTON);
-        registerReceiver(headPhoneReceiver, filter);
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        registerReceiver(headPlugReceiver, filter);
+
+        filter = new IntentFilter(Intent.ACTION_MEDIA_BUTTON);
+
+        AudioManager manager = (AudioManager)getSystemService(AUDIO_SERVICE);
+        manager.registerMediaButtonEventReceiver(new ComponentName(getApplicationContext(),HeadMediaReceiver.class));
+        registerReceiver(headMediaReceiver,filter);
     }
 
     private void setModel() {
@@ -160,8 +171,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         if (playList == null)
             playList = new LinkedList<>();
 
-        if (headPhoneReceiver == null)
-            headPhoneReceiver = new HeadPhoneReceiver();
+        if (headMediaReceiver == null)
+            headMediaReceiver = new HeadMediaReceiver();
+
+        if(headPlugReceiver == null)
+            headPlugReceiver = new HeadPlugReceiver();
 
         loop = prefs.getBoolean("loop", false);
         seq = prefs.getBoolean("seq", true);
@@ -208,7 +222,6 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         int played = prefs.getInt("played", 0);
         createPlayList(played);
-
         cursor.close();
     }
 
@@ -247,20 +260,19 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         ArrayList<Music> temp = new ArrayList<>();
 
         String tar = String.valueOf(sequence).toLowerCase();
-        Log.d(TAG, "Target: " + tar);
         for (Music m : musicList) {
             m.getTitle().clearSpans();
             m.getArtist().clearSpans();
 
             if (m.getTitle().toString().toLowerCase().contains(tar) || m.getArtist().toString().toLowerCase().contains(tar)) {
                 if (m.getTitle().toString().toLowerCase().contains(tar)) {
-                    int start = TextUtils.indexOf(m.getTitle().toString().toLowerCase(),sequence);
-                    m.getTitle().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")),start,start+tar.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    int start = TextUtils.indexOf(m.getTitle().toString().toLowerCase(), sequence);
+                    m.getTitle().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")), start, start + tar.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
 
                 if (m.getArtist().toString().toLowerCase().contains(tar)) {
-                    int start =TextUtils.indexOf(m.getArtist().toString().toLowerCase(),sequence);
-                    m.getArtist().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")),start,start+tar.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    int start = TextUtils.indexOf(m.getArtist().toString().toLowerCase(), sequence);
+                    m.getArtist().setSpan(new ForegroundColorSpan(Color.parseColor("#ffa500")), start, start + tar.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                 }
                 temp.add(m);
@@ -284,6 +296,7 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
             createPlayList(current);
             rawStart();
+
         } else {
             try {
                 int id = mPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO); //에러가 발생하면 현재 음악을 한번도 실행하지 않았다는 의미
@@ -298,13 +311,14 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         }
 
         Intent intent = new Intent("com.example.activity");
+        intent.putExtra("mode","ACTION_CLICK");
         sendBroadcast(intent);
 
         for (Music m : musicList) {
             m.getTitle().clearSpans();
             m.getArtist().clearSpans();
         }
-        //   mAdapter.setMusicList(musicList);
+        //mAdapter.setMusicList(musicList);
         mAdapter.notifyDataSetChanged();
     }
 
@@ -556,7 +570,11 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
         Log.d(TAG, "[Service] onDestroy");
 
         unregisterReceiver(receiver);
-        unregisterReceiver(headPhoneReceiver);
+        unregisterReceiver(headMediaReceiver);
+        unregisterReceiver(headPlugReceiver);
+
+        AudioManager manager = (AudioManager)getSystemService(AUDIO_SERVICE);
+        manager.unregisterMediaButtonEventReceiver(new ComponentName(getPackageName(), HeadMediaReceiver.class.getName()));
     }
 
     @Override
@@ -570,6 +588,12 @@ public class MusicService extends Service implements MacroAdapter, MediaPlayer.O
 
         rawReStart();
         saveMusic();
+
+
+        Intent intent = new Intent("com.example.activity");
+        intent.putExtra("mode","ACTION_PREPARED");
+        intent.putExtra("pos",musicList.indexOf(playingMusic));
+        sendBroadcast(intent);
 
         Notification notification = Util.getInstance().buildNotification(getApplicationContext(), playingMusic, true);
         startForeground(1, notification);
