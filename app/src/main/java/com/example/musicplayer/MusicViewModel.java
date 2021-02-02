@@ -118,6 +118,8 @@ public class MusicViewModel {
     public static void loadThumbnail(ImageView view, long album){
         Picasso.get()
                 .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
+                .fit()
+                .transform(new RoundedCornersTransform())
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .into(view);
     }
