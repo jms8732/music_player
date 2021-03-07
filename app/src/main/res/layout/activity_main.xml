@@ -1,146 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <import type="android.view.View" />
         <variable
-            name="model"
-            type="com.example.musicplayer.MusicViewModel" />
+            name="music"
+            type="com.example.myapplication.Music" />
 
         <variable
-            name="listener"
-            type="com.example.musicplayer.MacroListener" />
-
+            name="item"
+            type="com.example.myapplication.MusicClickListener" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:focusableInTouchMode="true"
-        android:focusable="true">
+        tools:context=".MainActivity">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/primary_layout"
+        <EditText
+            android:id="@+id/search"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="15dp"
-            android:background="@android:color/background_dark">
+            android:layout_height="wrap_content"
+            android:hint="음악을 입력하세요"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <EditText
-                android:id="@+id/primary_searchView"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@drawable/recycler_background"
+            app:layout_constraintBottom_toTopOf="@+id/transformationLayout"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/search"
+            app:layout_constraintVertical_bias="0.133"
+            tools:listitem="@layout/list_row" />
+
+
+        <com.skydoves.transformationlayout.TransformationLayout
+            android:id="@+id/transformationLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:transformation_pathMode="linear"
+            android:background="@android:color/darker_gray"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:transformation_holdAtEndEnabled="true"
+            app:transformation_duration="550">
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:layout_marginTop="4dp"
-                android:paddingLeft="15dp"
-                android:hint="재생목록 검색"
-                android:inputType="text"
-                android:singleLine="true"
-                android:background="@drawable/custom_search_layout"
-                app:layout_constraintBottom_toTopOf="@+id/primary_recyclerview"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:layout_height="wrap_content">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/primary_recyclerview"
-                style="@style/customThumb"
-                android:background="@drawable/custom_recyclerview_background"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp"
-                app:layout_constrainedHeight="true"
-                app:layout_constraintBottom_toTopOf="@+id/primary_thumbnail"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/primary_searchView"
-                app:layout_constraintVertical_chainStyle="packed"
-                tools:listitem="@layout/list_row" />
-
-
-            <com.skydoves.transformationlayout.TransformationLayout
-                android:id="@+id/primary_thumbnail"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/custom_thumbnail_layout"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/primary_recyclerview"
-                app:transformation_duration="450"
-                app:transformation_fitMode="auto"
-                app:transformation_targetView="@+id/primary_detail">
-
-                <RelativeLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
-                    android:layout_height="75dp">
+                    android:layout_height="75dp"
+                    android:foreground="?attr/selectableItemBackground">
 
                     <ImageView
                         android:id="@+id/thumbnail_music_image"
                         android:layout_width="55dp"
                         android:layout_height="55dp"
-                        android:layout_alignParentLeft="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginRight="15dp"
+                        android:layout_marginStart="16dp"
                         android:adjustViewBounds="true"
-                        android:loadThumbnail="@{model.album}"
-                        android:scaleType="centerInside" />
+                        android:scaleType="centerInside"
+                        android:thumbnail="@{music.album}"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
-                    <LinearLayout
+
+                    <TextView
+                        android:id="@+id/thumbnail_music_artist"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:layout_toRightOf="@+id/thumbnail_music_image"
-                        android:orientation="vertical">
+                        android:layout_marginStart="32dp"
+                        android:ems="10"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:text="@{music.artist}"
+                        android:textColor="@android:color/white"
+                        android:textSize="10dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/thumbnail_music_image"
+                        app:layout_constraintTop_toBottomOf="@+id/thumbnail_music_title"
+                        app:layout_constraintVertical_bias="0.407" />
 
-                        <TextView
-                            android:id="@+id/thumbnail_music_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="marquee"
-                            android:ems="10"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:singleLine="true"
-                            android:text="@{model.title}"
-                            android:textColor="@android:color/white"
-                            android:textSize="13dp" />
-
-                        <TextView
-                            android:id="@+id/thumbnail_music_artist"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:ems="10"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:singleLine="true"
-                            android:text="@{model.artist}"
-                            android:textColor="@android:color/white"
-                            android:textSize="10dp" />
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/thumbnail_music_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:layout_marginTop="16dp"
+                        android:ellipsize="marquee"
+                        android:ems="10"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:singleLine="true"
+                        android:text="@{music.title}"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        app:layout_constraintStart_toEndOf="@+id/thumbnail_music_image"
+                        app:layout_constraintTop_toTopOf="parent" />
 
                     <ImageView
-                        android:id="@+id/thumbnail_music_play"
-                        android:layout_width="25dp"
-                        android:layout_height="25dp"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:layout_marginRight="15dp"
-                        android:layout_weight="1"
+                        android:id="@+id/playButton"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="28dp"
                         android:adjustViewBounds="true"
-                        android:buttonStatus="@{model.status}"
-                        android:onClick="@{() -> listener.rawItemClick(-1)}" />
+                        app:srcCompat="@drawable/play_circle_out"
+                        android:onClick="@{() -> item.onItemClick(music)}"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
-                </RelativeLayout>
-
-            </com.skydoves.transformationlayout.TransformationLayout>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <include
-            android:id="@+id/primary_detail"
-            layout="@layout/activity_detail"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </com.skydoves.transformationlayout.TransformationLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

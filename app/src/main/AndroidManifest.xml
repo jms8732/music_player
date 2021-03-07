@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.musicplayer">
+    package="com.example.myapplication">
 
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.BLUETOOTH"/>
 
     <application
@@ -12,29 +12,31 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MusicPlayer">
-        <activity
-            android:name=".MainActivity"
-            android:launchMode="singleInstance"
-            android:screenOrientation="portrait">
+        android:theme="@style/Theme.MyApplication">
+        <activity android:name=".MainActivity"
+            android:screenOrientation="portrait"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".MusicService" />
+        <service android:name=".MusicService"/>
+        <activity android:name=".DetailActivity"
+            android:theme="@style/Theme.Detail"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait">
+        </activity>
 
-        <receiver android:name=".HeadMediaReceiver"
-            android:exported="true">
+        <receiver android:name=".MediaButtonReceiver">
             <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
             </intent-filter>
         </receiver>
-        <receiver android:name=".HeadPlugReceiver"
-            android:exported="true">
+        <receiver android:name=".HeadPhonePlugReceiver">
             <intent-filter>
-                <action android:name="android.intent.action.ACTION_HEADSET_PLUG" />
+                <action android:name="android.intent.action.HEADSET_PLUG"/>
             </intent-filter>
         </receiver>
     </application>
