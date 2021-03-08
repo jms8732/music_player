@@ -287,7 +287,6 @@ public class DetailActivity extends TransformationAppCompatActivity implements V
             stop = false;
             Log.d(TAG, "[Detail Activity] Start.....");
             while (!stop) {
-                Log.d(TAG, "[Detail Activity] running...");
                 music.setCurrentDuration(mService.getCurrentPosition());
                 SystemClock.sleep(1000);
             }

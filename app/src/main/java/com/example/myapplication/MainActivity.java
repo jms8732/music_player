@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
     private MusicService mService;
     private SharedPreferences pref;
 
+
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -105,10 +106,9 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         binding.recycler.setHasFixedSize(true);
         binding.recycler.setNestedScrollingEnabled(false);
 
-        SwipeController controller = new SwipeController(mService);
+        SwipeController controller = new SwipeController(musicClickListener);
         ItemTouchHelper helper = new ItemTouchHelper(controller);
         helper.attachToRecyclerView(binding.recycler);
-        setupRecyclerView(controller);
 
         int previous = pref.getInt("previous",0);
         binding.recycler.scrollToPosition(previous);
@@ -122,14 +122,6 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         }
     }
 
-    private void setupRecyclerView(final SwipeController controller){
-        binding.recycler.addItemDecoration(new RecyclerView.ItemDecoration() {
-            @Override
-            public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
-                controller.onDraw(c);
-            }
-        });
-    }
 
     //음악 실행 뷰 갱신
     private void invalidateStartView(){
@@ -166,12 +158,11 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
     @Override
     public void rawClick(Music next) {
         Log.d(TAG, "[Activity] rawClick...");
-
         String cur_id = binding.getMusic().getId();
         String next_id = next.getId();
 
         Log.d(TAG, cur_id + " vs " + next_id);
-
+/*
         if (cur_id.equals(next_id)) {
             //현재 선택한 음악이 동일 한 경우
 
@@ -191,8 +182,9 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             binding.getMusic().setIsplaying(false);
             binding.getMusic().setActivate(false);
             rawStart(next);
-        }
+        }*/
     }
+
 
     //노래 재생
     private void rawStart(Music music) {
@@ -241,6 +233,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
 
         Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, proj, selection, selectionArgs, null);
 
+        int index = 0;
         while (cursor.moveToNext()) {
             String id = cursor.getString(0);
             String title = cursor.getString(1);
@@ -249,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             String path = cursor.getString(4);
             long album = cursor.getLong(5);
 
-            ret.add(new Music(title, artist, path, duration, album, id, false));
+            ret.add(new Music(title, artist, path, duration, album, id, false,index++));
         }
 
         int previous = pref.getInt("previous", 0);

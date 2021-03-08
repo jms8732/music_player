@@ -30,18 +30,18 @@ import androidx.core.app.NotificationCompat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MusicService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, SwipeControllerActions {
+public class MusicService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
     private static final String TAG = "jms8732";
-    private Deque<Music> playList;
+    private List<Music> playList;
     private MediaPlayer mPlayer;
     private boolean isPrepared, shuffle;
-    private List<Music> musicList;
     private Music music;
-    private int count, repeat;
+    private int index, repeat;
     private NotificationManager notificationManager;
     private SharedPreferences prefs;
     private final String channelId = "musicChannel";
@@ -49,6 +49,8 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     private MediaButtonReceiver mediaButtonReceiver;
     private HeadPhonePlugReceiver headPhonePlugReceiver;
+
+    //헤드폰 컨트롤를 맞는 리시버
     private BroadcastReceiver actionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -57,10 +59,18 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
             switch (mode) {
                 case "play":
-                    if(mPlayer.isPlaying())
+                    if (mPlayer.isPlaying())
                         pause();
-                    else
-                        restart();
+                    else {
+                        if (isPrepared)
+                            restart();
+                        else
+                            start(music);
+                    }
+                    break;
+
+                case "pause":
+                    pause();
                     break;
                 case "rewind":
                     rewind();
@@ -93,16 +103,6 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         }
 
         return false;
-    }
-
-    @Override
-    public void onLeftClicked(int position) {
-        Log.d(TAG, "onLeftClicked: " + position);
-    }
-
-    @Override
-    public void onRightClicked(int position) {
-        Log.d(TAG, "onRightClicked: " + position);
     }
 
     @Override
@@ -175,35 +175,67 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         return isPrepared;
     }
 
-    //음악 플레이 리스트 만들기
-    public void createPlayList(int start) {
-        if (playList == null)
-            playList = new LinkedList<>();
-        else
-            playList.clear();
+    //음악 삭제
+    public void deleteMusic(Music m) {
+        Log.d(TAG, "deleteMusic: " + m.getId() + " Current: " + music.getId());
+    }
 
-        this.music = musicList.get(start); //현재 음악
+    private void saveDeleteMusicList(String id) {
+        SharedPreferences.Editor editor = prefs.edit();
+        String delete = prefs.getString("delete", null);
+
+        StringBuilder sb = new StringBuilder();
+
+        if (delete == null)
+            sb.append(id);
+        else {
+            sb.append(delete + " ");
+            sb.append(id);
+        }
+
+        editor.putString("delete", sb.toString());
+        editor.apply();
+    }
+
+
+    //음악 플레이 리스트 만들기
+    private void createPlayList(Music start) {
+        this.music = start;
 
         if (!shuffle) {
             //순차
             Log.d(TAG, "[Service] create sequence list.....");
-            count = start;
-            playList.addAll(musicList.subList(start + 1, musicList.size()));
-            playList.addAll(musicList.subList(0, start));
+            index = start.getIndex();
+            Collections.sort(playList, (o1, o2) -> Integer.compare(o1.getIndex(), o2.getIndex()));
         } else {
             //랜덤
             Log.d(TAG, "[Service] create shuffle list....");
-            count = 0;
-            List<Music> temp = new ArrayList<>(musicList);
+            index = 0;
+            List<Music> temp = new ArrayList<>(playList);
             temp.remove(start); //시작 음악을 제외한 나머지 음악들
 
             Collections.shuffle(temp);
+            playList.clear();
+            playList.add(start); //시작 노래를 먼저 추가
             playList.addAll(temp);
+        }
+
+        printPlayList();
+    }
+
+    private void printPlayList() {
+        for (int i = 0; i < playList.size(); i++) {
+            Log.d(TAG, "index : " + (i + 1) + " Title: " + playList.get(i).getTitle());
         }
     }
 
     public void setMusicList(List<Music> temp) {
-        musicList = temp;
+        if (playList == null)
+            playList = new ArrayList<>(temp);
+        else if (playList.size() != temp.size()) {
+            //새로운 음악이 추가 될 경우
+            createPlayList(music);
+        }
     }
 
     public void setMusic(Music m) {
@@ -216,13 +248,12 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
         //todo 수정
         if (music != null) {
-            int start = musicList.indexOf(music);
-            createPlayList(start);
+            createPlayList(music);
         }
 
         try {
             mPlayer.reset();
-            savePosition(musicList.indexOf(this.music));
+            savePosition(this.music.getIndex());
             mPlayer.setDataSource(getApplicationContext(), Uri.parse(this.music.getPath()));
             mPlayer.prepareAsync();
 
@@ -262,13 +293,11 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     //다음 곡 재생
     public void forward() {
         Log.d(TAG, "[Service] forward...");
-        Log.d(TAG, "Count: " + count);
-        if (count + 1 <= playList.size() || repeat == 1) {
+        if ((repeat == 0 && index + 1 <= playList.size()) || repeat == 1) {
             invalidateCompleteView();
-            count = (count + 1) % playList.size();
-            playList.add(music);
+            index = (index + 1) % playList.size();
 
-            this.music = playList.pollFirst();
+            this.music = playList.get(index);
             start(null);
         } else {
             Toast.makeText(this, "마지막 곡", Toast.LENGTH_SHORT).show();
@@ -284,12 +313,14 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     //이전 곡 재생
     public void rewind() {
         Log.d(TAG, "[Service] rewind...");
-        if (count - 1 >= 0 || repeat == 1) {
+        if ((repeat == 0 && index - 1 >= 0) || repeat == 1) {
             invalidateCompleteView();
-            count--;
-            playList.addFirst(music);
+            index--;
 
-            this.music = playList.pollLast();
+            if (index < 0)
+                index = playList.size() - 1;
+
+            this.music = playList.get(index);
             start(null);
         } else
             Toast.makeText(this, "첫 곡", Toast.LENGTH_SHORT).show();
@@ -301,7 +332,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         editor.putBoolean("shuffle", shuffle);
         editor.apply();
 
-        createPlayList(musicList.indexOf(music));
+        createPlayList(music);
     }
 
     public boolean getShuffle() {
@@ -315,7 +346,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         editor.apply();
 
         if (repeat == 0) {
-            count = musicList.indexOf(music);
+            index = music.getIndex();
         }
     }
 
@@ -340,7 +371,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         }
     }
 
-    public void seekTo(int pos){
+    public void seekTo(int pos) {
         mPlayer.seekTo(pos);
     }
 
@@ -381,7 +412,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     private void invalidateStartView() {
         Intent intent = new Intent("com.example.activity");
         intent.putExtra("mode", "start");
-        intent.putExtra("pos", musicList.indexOf(music));
+        intent.putExtra("pos", music.getIndex());
         sendBroadcast(intent);
 
         intent = new Intent("com.example.detailActivity");
