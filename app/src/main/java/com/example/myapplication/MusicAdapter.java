@@ -1,6 +1,9 @@
 package com.example.myapplication;
 
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -10,7 +13,9 @@ import com.example.myapplication.databinding.ListRowBinding;
 
 import java.util.List;
 
+
 public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.MusicHolder> {
+    private static final String TAG = "jms8731";
     private List<Music> list;
     private MusicClickListener listener;
 
@@ -22,9 +27,10 @@ public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.MusicHolder>
     @NonNull
     @Override
     public MusicHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ListRowBinding binding = ListRowBinding.inflate(LayoutInflater.from(parent.getContext()),parent,false);
-        return new MusicHolder(binding);
+        ListRowBinding binding = ListRowBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new MusicHolder(binding, listener);
     }
+
 
     @Override
     public long getItemId(int position) {
@@ -34,7 +40,6 @@ public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.MusicHolder>
     @Override
     public void onBindViewHolder(@NonNull MusicHolder holder, int position) {
         holder.rowBinding.setMusic(list.get(position));
-        holder.rowBinding.setItem(listener);
     }
 
     @Override
@@ -42,12 +47,19 @@ public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.MusicHolder>
         return list.size();
     }
 
-    public static class MusicHolder extends RecyclerView.ViewHolder{
+    public static class MusicHolder extends RecyclerView.ViewHolder {
         public ListRowBinding rowBinding;
 
-        public MusicHolder(@NonNull ListRowBinding binding) {
+        public MusicHolder(@NonNull ListRowBinding binding, MusicClickListener listener) {
             super(binding.getRoot());
             rowBinding = binding;
+
+            rowBinding.rowLayout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onItemClick(rowBinding.getMusic());
+                }
+            });
         }
     }
 }

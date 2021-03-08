@@ -16,12 +16,12 @@ import es.claucookie.miniequalizerlibrary.EqualizerView;
 
 public class Music extends BaseObservable  {
     private String title, artist, path,id;
-    private int totalDuration,currentDuration;
+    private int totalDuration,currentDuration, index;
     private long album;
     private boolean isplaying, isActivate;
 
 
-    public Music(String title, String artist, String path, int totalDuration, long album, String id, boolean isplaying) {
+    public Music(String title, String artist, String path, int totalDuration, long album, String id, boolean isplaying, int index) {
         this.title = title;
         this.artist = artist;
         this.path = path;
@@ -31,6 +31,7 @@ public class Music extends BaseObservable  {
         this.isplaying = isplaying;
         this.isActivate = false;
         this.currentDuration= 0;
+        this.index = index;
     }
 
 
@@ -42,6 +43,14 @@ public class Music extends BaseObservable  {
     public void setAlbum(long album) {
         this.album = album;
         notifyPropertyChanged(BR.album);
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 
     @Bindable
