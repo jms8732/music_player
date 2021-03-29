@@ -28,7 +28,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"/>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
@@ -49,21 +49,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:transformation_pathMode="linear"
-            android:background="@android:color/darker_gray"
+            android:background="@android:color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:transformation_holdAtEndEnabled="true"
-            app:transformation_duration="550">
+            app:transformation_duration="550"
+            >
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:background="@android:color/black">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
-                    android:layout_height="75dp"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:layout_height="75dp">
 
                     <ImageView
                         android:id="@+id/thumbnail_music_image"

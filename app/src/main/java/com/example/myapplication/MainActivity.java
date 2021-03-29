@@ -21,6 +21,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Canvas;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
@@ -30,16 +31,18 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
+import com.google.android.material.snackbar.Snackbar;
 import com.skydoves.transformationlayout.TransformationCompat;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements clickAdapter, View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements clickAdapter, View.OnClickListener, SwipeAdapter {
     private static final String TAG = "jms8732";
     private ActivityMainBinding binding;
     private MusicService mService;
     private SharedPreferences pref;
+    private MusicAdapter adapter;
 
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -102,12 +105,12 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
 
         binding.setItem(musicClickListener);
         binding.recycler.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-        binding.recycler.setAdapter(new MusicAdapter(musics, musicClickListener));
+        adapter = new MusicAdapter(musics, musicClickListener);
+        binding.recycler.setAdapter(adapter);
         binding.recycler.setHasFixedSize(true);
         binding.recycler.setNestedScrollingEnabled(false);
 
-        SwipeController controller = new SwipeController(musicClickListener);
-        ItemTouchHelper helper = new ItemTouchHelper(controller);
+        ItemTouchHelper helper = new ItemTouchHelper(new SwipeHelper(this));
         helper.attachToRecyclerView(binding.recycler);
 
         int previous = pref.getInt("previous",0);
@@ -162,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         String next_id = next.getId();
 
         Log.d(TAG, cur_id + " vs " + next_id);
-/*
         if (cur_id.equals(next_id)) {
             //현재 선택한 음악이 동일 한 경우
 
@@ -182,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             binding.getMusic().setIsplaying(false);
             binding.getMusic().setActivate(false);
             rawStart(next);
-        }*/
+        }
     }
 
 
@@ -286,6 +288,12 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             Intent intent = new Intent(getApplicationContext(), DetailActivity.class);
             TransformationCompat.startActivity(binding.transformationLayout, intent);
         }
+    }
+
+
+    @Override
+    public void swipeDelete(RecyclerView.ViewHolder viewHolder, int direction) {
+       mService.removeMusic(viewHolder,direction,adapter);
     }
 
 
