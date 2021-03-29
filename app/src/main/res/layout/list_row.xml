@@ -11,19 +11,22 @@
         <variable
             name="music"
             type="com.example.myapplication.Music" />
+        <variable
+            name="listener"
+            type="com.example.myapplication.MusicClickListener" />
     </data>
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="2dp"
-        android:background="?android:selectableItemBackground">
+        android:layout_margin="2dp">
 
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/rowLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:onClick="@{() -> listener.onItemClick(music)}">
 
             <ImageView
                 android:id="@+id/album"

@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -21,19 +22,29 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.snackbar.SnackbarContentLayout;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.BlockingDeque;
+import java.util.stream.Stream;
 
 public class MusicService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener {
     private static final String TAG = "jms8732";
@@ -175,28 +186,6 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         return isPrepared;
     }
 
-    //음악 삭제
-    public void deleteMusic(Music m) {
-        Log.d(TAG, "deleteMusic: " + m.getId() + " Current: " + music.getId());
-    }
-
-    private void saveDeleteMusicList(String id) {
-        SharedPreferences.Editor editor = prefs.edit();
-        String delete = prefs.getString("delete", null);
-
-        StringBuilder sb = new StringBuilder();
-
-        if (delete == null)
-            sb.append(id);
-        else {
-            sb.append(delete + " ");
-            sb.append(id);
-        }
-
-        editor.putString("delete", sb.toString());
-        editor.apply();
-    }
-
 
     //음악 플레이 리스트 만들기
     private void createPlayList(Music start) {
@@ -220,13 +209,47 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
             playList.addAll(temp);
         }
 
-        printPlayList();
     }
 
-    private void printPlayList() {
-        for (int i = 0; i < playList.size(); i++) {
-            Log.d(TAG, "index : " + (i + 1) + " Title: " + playList.get(i).getTitle());
+    public void removeMusic(final RecyclerView.ViewHolder viewHolder, int direction,final MusicAdapter adapter){
+        final Music temp = adapter.getMusic(viewHolder.getAdapterPosition());
+        final int adapterPosition = viewHolder.getAdapterPosition();
+        final int idx = temp.getIndex();
+
+        Log.d(TAG, "************* Delete Music: " + temp.getTitle() + "*************");
+        if(Build.VERSION.SDK_INT >= 25) {
+            final int playListIdx = playList.indexOf(temp); //플레이 리스트의 위치
+
+            if (playList.removeIf(m -> m.getIndex() == idx)) {
+                //삭제가 될 경우
+                adapter.removeMusic(adapterPosition);
+
+                playList.stream().filter(m -> m.getIndex() > idx).forEach(m ->{
+                    System.out.println("idx : " + m.getIndex());
+                });
+
+                Log.d(TAG, "Index : " + index + " idx : " + idx);
+                if(index == idx){
+                    //현재 삭제된 음악이 실행중인 음악이었다면
+                    forward();
+                }
+                Snackbar.make(viewHolder.itemView,temp.getTitle(),Snackbar.LENGTH_LONG).setAction("Undo", v -> {
+                    playList.add(playListIdx,temp);
+                    adapter.addMusic(adapterPosition,temp);
+
+                    print();
+                }).show();
+
+            }
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private void print(){
+        playList.stream().forEach( m->{
+            Log.d(TAG,"Title: " + m.getTitle());
+        });
+
     }
 
     public void setMusicList(List<Music> temp) {
@@ -304,7 +327,6 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         }
 
     }
-
 
     public int getCurrentPosition() {
         return mPlayer.getCurrentPosition();
