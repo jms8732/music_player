@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         binding.recycler.setHasFixedSize(true);
         binding.recycler.setNestedScrollingEnabled(false);
 
-        ItemTouchHelper helper = new ItemTouchHelper(new SwipeHelper(this));
+        ItemTouchHelper helper = new ItemTouchHelper(new SwipeHelper(getApplicationContext(),this));
         helper.attachToRecyclerView(binding.recycler);
 
         int previous = pref.getInt("previous",0);
@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
 
     @Override
     public void swipeDelete(RecyclerView.ViewHolder viewHolder, int direction) {
-       mService.removeMusic(viewHolder,direction,adapter);
+       mService.removeMusic(viewHolder,direction,adapter,binding.recycler);
     }
 
 

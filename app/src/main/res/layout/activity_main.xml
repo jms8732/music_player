@@ -5,7 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+
         <import type="android.view.View" />
+
         <variable
             name="music"
             type="com.example.myapplication.Music" />
@@ -15,10 +17,12 @@
             type="com.example.myapplication.MusicClickListener" />
     </data>
 
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".MainActivity">
+
 
         <EditText
             android:id="@+id/search"
@@ -28,7 +32,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
@@ -48,14 +52,13 @@
             android:id="@+id/transformationLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:transformation_pathMode="linear"
             android:background="@android:color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:transformation_holdAtEndEnabled="true"
             app:transformation_duration="550"
-            >
+            app:transformation_holdAtEndEnabled="true"
+            app:transformation_pathMode="linear">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -117,15 +120,14 @@
                         android:layout_height="40dp"
                         android:layout_marginEnd="28dp"
                         android:adjustViewBounds="true"
-                        app:srcCompat="@drawable/play_circle_out"
                         android:onClick="@{() -> item.onItemClick(music)}"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/play_circle_out" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
         </com.skydoves.transformationlayout.TransformationLayout>
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

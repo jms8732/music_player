@@ -43,6 +43,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringTokenizer;
 import java.util.concurrent.BlockingDeque;
 import java.util.stream.Stream;
 
@@ -211,45 +212,85 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
     }
 
-    public void removeMusic(final RecyclerView.ViewHolder viewHolder, int direction,final MusicAdapter adapter){
+    //삭제 리스트 추가
+    private void saveDeleteMusic(String id){
+        String deleteList = prefs.getString("delete",null);
+
+        StringBuilder sb = new StringBuilder();
+        if(deleteList == null){
+            sb.append(id);
+        }else{
+            sb.append(deleteList + " " + id);
+        }
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("delete",sb.toString());
+        editor.apply();
+    }
+
+    private void restoreDeleteMusic(String id){
+        String deleteList = prefs.getString("delete",null);
+        String [] split = deleteList.split(" ");
+        final StringBuilder sb=  new StringBuilder();
+        Arrays.stream(split).filter(s -> !s.equals(id)).forEach(s ->{
+            sb.append(s).append(" ");
+        });
+
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("delete",sb.toString().trim());
+        editor.apply();
+    }
+
+
+
+    //음악 삭제
+    public void removeMusic(final RecyclerView.ViewHolder viewHolder, int direction,final MusicAdapter adapter, final View view){
         final Music temp = adapter.getMusic(viewHolder.getAdapterPosition());
         final int adapterPosition = viewHolder.getAdapterPosition();
         final int idx = temp.getIndex();
 
-        Log.d(TAG, "************* Delete Music: " + temp.getTitle() + "*************");
         if(Build.VERSION.SDK_INT >= 25) {
             final int playListIdx = playList.indexOf(temp); //플레이 리스트의 위치
 
             if (playList.removeIf(m -> m.getIndex() == idx)) {
                 //삭제가 될 경우
                 adapter.removeMusic(adapterPosition);
-
+                saveDeleteMusic(temp.getId());
+                //인덱스를 1 줄인다.
                 playList.stream().filter(m -> m.getIndex() > idx).forEach(m ->{
-                    System.out.println("idx : " + m.getIndex());
+                    m.setIndex(m.getIndex()-1);
                 });
 
-                Log.d(TAG, "Index : " + index + " idx : " + idx);
-                if(index == idx){
-                    //현재 삭제된 음악이 실행중인 음악이었다면
-                    forward();
+
+                if(!shuffle) {
+                    if (index == idx) {
+                        //현재 삭제된 음악이 실행중인 음악이었다면
+                        --index;
+                        forward();
+                    }
+                }else{
+                    //랜덤일 경우
+                    if(playListIdx == index){
+                        --index;
+                        forward();
+                    }
                 }
-                Snackbar.make(viewHolder.itemView,temp.getTitle(),Snackbar.LENGTH_LONG).setAction("Undo", v -> {
-                    playList.add(playListIdx,temp);
+
+                Snackbar.make(view,"Music Delete",Snackbar.LENGTH_SHORT).setAction("Undo", v -> {
+                    //삭제를 취소할 경우
                     adapter.addMusic(adapterPosition,temp);
 
-                    print();
+                    playList.stream().filter(m -> m.getIndex() >= idx).forEach(m ->{
+                        m.setIndex(m.getIndex()+1);
+                    });
+
+                    ++index;
+                    restoreDeleteMusic(temp.getId());
+                    playList.add(playListIdx,temp);
                 }).show();
 
             }
         }
-    }
-
-    @TargetApi(Build.VERSION_CODES.O)
-    private void print(){
-        playList.stream().forEach( m->{
-            Log.d(TAG,"Title: " + m.getTitle());
-        });
-
     }
 
     public void setMusicList(List<Music> temp) {
