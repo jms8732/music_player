@@ -33,6 +33,11 @@
             android:layout_height="wrap_content"
             android:max="@{music.totalDuration}"
             android:progress="@{music.currentDuration}"
+            android:thumb="@drawable/duration_thumb"
+            android:progressTint="#FFEEB5"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:paddingTop="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/detail_album" />
@@ -169,6 +174,8 @@
                 android:layout_marginStart="5dp"
                 android:layout_marginEnd="5dp"
                 android:layout_weight="30"
+                android:thumb="@drawable/speaker_thumb"
+                android:progressTint="#FFBB11"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/detail_album" />
