@@ -106,7 +106,6 @@ public class DetailActivity extends TransformationAppCompatActivity implements V
         else
             binding.shuffle.setImageResource(R.drawable.shuffle_deactivate);
 
-
         switch (mService.getRepeat()) {
             case 0:
                 binding.repeat.setImageResource(R.drawable.repeat_deactivate);
