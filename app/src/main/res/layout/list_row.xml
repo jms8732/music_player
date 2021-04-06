@@ -14,24 +14,21 @@
         <variable
             name="listener"
             type="com.example.myapplication.MusicClickListener" />
+        <import type="com.example.myapplication.Util"/>
     </data>
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="2dp">
-
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/rowLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
             android:onClick="@{() -> listener.onItemClick(music)}">
 
             <ImageView
                 android:id="@+id/album"
-                android:layout_width="70dp"
-                android:layout_height="70dp"
+                android:layout_margin="7dp"
+                android:layout_width="65dp"
+                android:layout_height="65dp"
                 android:scaleType="centerCrop"
                 android:thumbnail="@{music.album}"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -47,7 +44,7 @@
                 android:activate="@{music.activate}"
                 android:visibility="@{music.isplaying? View.VISIBLE : View.GONE}"
                 app:animDuration="4000"
-                app:foregroundColor="@android:color/darker_gray"
+                app:foregroundColor="@android:color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/album"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -82,7 +79,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/equalizer"
                 app:layout_constraintTop_toBottomOf="@+id/title"
-                app:layout_constraintVertical_bias="0.419" />
+                app:layout_constraintVertical_bias="0.2" />
 
             <TextView
                 android:id="@+id/duration"
@@ -90,7 +87,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
                 android:layout_marginRight="16dp"
-                android:text="시간"
+                android:text="@{Util.convertTime(music.totalDuration)}"
                 android:textSize="10dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -98,5 +95,4 @@
                 app:layout_constraintVertical_bias="0.491" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.cardview.widget.CardView>
 </layout>

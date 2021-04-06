@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.app.ActionBar;
 import android.content.ContentUris;
 import android.net.Uri;
 import android.os.Parcel;
@@ -133,7 +134,6 @@ public class Music extends BaseObservable  {
         Picasso.get()
                 .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
                 .fit()
-                .transform(new RoundedCornersTransform())
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .into(view);
     }
@@ -145,6 +145,7 @@ public class Music extends BaseObservable  {
                 .fit()
                 .placeholder(R.drawable.ic_launcher_foreground)
                 .into(view);
+
     }
 
     @BindingAdapter("android:activate")

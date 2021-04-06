@@ -12,5 +12,5 @@
     <!-- 크기 -->
     <size
         android:width="3dp"
-        android:height="10dp"/>
+        android:height="15dp"/>
 </shape>
