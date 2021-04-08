@@ -48,7 +48,7 @@
             android:id="@+id/detail_current_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
+            android:layout_marginStart="1dp"
             android:text="@{Util.convertTime(music.currentDuration)}"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/duration" />
@@ -57,7 +57,7 @@
             android:id="@+id/detail_total_duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
+            android:layout_marginEnd="1dp"
             android:text="@{Util.convertTime(music.totalDuration)}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/duration" />

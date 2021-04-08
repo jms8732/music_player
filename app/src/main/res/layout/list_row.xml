@@ -11,88 +11,91 @@
         <variable
             name="music"
             type="com.example.myapplication.Music" />
+
         <variable
             name="listener"
             type="com.example.myapplication.MusicClickListener" />
-        <import type="com.example.myapplication.Util"/>
+
+        <import type="com.example.myapplication.Util" />
     </data>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/rowLayout"
-            android:layout_width="match_parent"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/rowLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:onClick="@{() -> listener.onItemClick(music)}">
+
+        <ImageView
+            android:id="@+id/album"
+            android:layout_width="65dp"
+            android:layout_height="65dp"
+            android:layout_margin="7dp"
+            android:scaleType="centerCrop"
+            android:listAlbum="@{music.album}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
+
+        <es.claucookie.miniequalizerlibrary.EqualizerView
+            android:id="@+id/equalizer"
+            android:layout_width="13dp"
+            android:layout_height="13dp"
+            android:layout_marginStart="12dp"
+            android:activate="@{music.activate}"
+            android:visibility="@{music.isplaying? View.VISIBLE : View.GONE}"
+            app:animDuration="4000"
+            app:foregroundColor="@android:color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/album"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            android:onClick="@{() -> listener.onItemClick(music)}">
-
-            <ImageView
-                android:id="@+id/album"
-                android:layout_margin="7dp"
-                android:layout_width="65dp"
-                android:layout_height="65dp"
-                android:scaleType="centerCrop"
-                android:thumbnail="@{music.album}"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.0" />
-
-            <es.claucookie.miniequalizerlibrary.EqualizerView
-                android:id="@+id/equalizer"
-                android:layout_width="13dp"
-                android:layout_height="13dp"
-                android:layout_marginStart="12dp"
-                android:activate="@{music.activate}"
-                android:visibility="@{music.isplaying? View.VISIBLE : View.GONE}"
-                app:animDuration="4000"
-                app:foregroundColor="@android:color/white"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/album"
-                app:layout_constraintTop_toTopOf="parent" />
+            android:layout_marginStart="16dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/equalizer"
+            app:layout_constraintTop_toTopOf="parent">
 
             <TextView
                 android:id="@+id/title"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="12dp"
                 android:ellipsize="marquee"
                 android:ems="13"
                 android:maxEms="15"
                 android:singleLine="true"
                 android:text="@{music.title}"
                 android:textColor="@android:color/white"
-                android:textSize="13dp"
-                app:layout_constraintStart_toEndOf="@+id/equalizer"
-                app:layout_constraintTop_toTopOf="parent" />
+                android:textSize="13dp" />
 
             <TextView
                 android:id="@+id/artist"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
                 android:ellipsize="marquee"
                 android:ems="13"
                 android:singleLine="true"
                 android:text="@{music.artist}"
                 android:textColor="@android:color/white"
-                android:textSize="10dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/equalizer"
-                app:layout_constraintTop_toBottomOf="@+id/title"
-                app:layout_constraintVertical_bias="0.2" />
+                android:textSize="10dp" />
+        </LinearLayout>
 
-            <TextView
-                android:id="@+id/duration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="16dp"
-                android:layout_marginRight="16dp"
-                android:text="@{Util.convertTime(music.totalDuration)}"
-                android:textSize="10dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.491" />
+        <TextView
+            android:id="@+id/duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
+            android:text="@{Util.convertTime(music.totalDuration)}"
+            android:textSize="10dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.491" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

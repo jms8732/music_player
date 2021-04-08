@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.snackbar.SnackbarContentLayout;
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -527,7 +528,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         Uri image = ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"), music.getAlbum());
 
         if (image == null)
-            ret.setImageViewResource(R.id.remote_view_image, R.drawable.music_note);
+            ret.setImageViewResource(R.id.remote_view_image, R.drawable.music_note_white);
         else
             ret.setImageViewUri(R.id.remote_view_image, image);
 
@@ -540,6 +541,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
 
         return ret;
     }
+
 
     //RemoteView에 액션 부여
     private void addAction(RemoteViews remoteViews) {

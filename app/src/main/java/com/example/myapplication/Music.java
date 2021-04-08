@@ -20,9 +20,10 @@ public class Music extends BaseObservable  {
     private int totalDuration,currentDuration, index;
     private long album;
     private boolean isplaying, isActivate;
+    private String extension;
 
 
-    public Music(String title, String artist, String path, int totalDuration, long album, String id, boolean isplaying, int index) {
+    public Music(String title, String artist, String path, int totalDuration, long album, String id, boolean isplaying, int index, String extension) {
         this.title = title;
         this.artist = artist;
         this.path = path;
@@ -33,6 +34,7 @@ public class Music extends BaseObservable  {
         this.isActivate = false;
         this.currentDuration= 0;
         this.index = index;
+        this.extension = extension;
     }
 
 
@@ -134,7 +136,7 @@ public class Music extends BaseObservable  {
         Picasso.get()
                 .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
                 .fit()
-                .placeholder(R.drawable.ic_launcher_foreground)
+                .placeholder(R.drawable.music_note_white)
                 .into(view);
     }
 
@@ -143,9 +145,19 @@ public class Music extends BaseObservable  {
         Picasso.get()
                 .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
                 .fit()
-                .placeholder(R.drawable.ic_launcher_foreground)
+                .placeholder(R.drawable.music_note_white)
                 .into(view);
 
+    }
+
+    @BindingAdapter("android:listAlbum")
+    public static void listAlbum(ImageView view, long album){
+        Picasso.get()
+                .load(ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"),album))
+                .fit()
+                .transform(new RoundedCornersTransform())
+                .placeholder(R.drawable.music_note_white)
+                .into(view);
     }
 
     @BindingAdapter("android:activate")
