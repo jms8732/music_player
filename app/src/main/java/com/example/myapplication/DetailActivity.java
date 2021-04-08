@@ -137,7 +137,6 @@ public class DetailActivity extends TransformationAppCompatActivity implements V
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     manager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, AudioManager.FLAG_SHOW_UI);
-                    mService.seekTo(progress);
                 }
             }
 

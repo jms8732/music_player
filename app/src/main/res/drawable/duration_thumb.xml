@@ -4,13 +4,13 @@
     android:useLevel="false"  >
     <!-- 배경 -->
     <solid
-        android:color="#FFBB11"/>
+        android:color="#000"/>
     <!-- 테두리 -->
     <stroke
-        android:width="2dp"
-        android:color="#FFBB11" />
+        android:width="0.5dp"
+        android:color="#fff" />
     <!-- 크기 -->
     <size
-        android:width="3dp"
-        android:height="15dp"/>
+        android:width="5dp"
+        android:height="18dp"/>
 </shape>

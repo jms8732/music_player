@@ -6,11 +6,11 @@
             <corners android:radius="20dp"/>
             <gradient
                 android:angle="90"
-                android:startColor="#141E30"
-                android:endColor="#243B55"
+                android:startColor="#24C6DC"
+                android:endColor="#514A9D"
                 android:type="linear" />
         </shape>
     </item>
-
-
+    <item android:drawable="@drawable/music_notes_black"
+        android:gravity="center"/>
 </layer-list>

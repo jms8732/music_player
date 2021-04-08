@@ -21,17 +21,54 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".MainActivity">
+        android:id="@+id/main_background"
+        tools:context=".MainActivity"
+        android:background="@android:color/black">
 
         <EditText
             android:id="@+id/search"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="음악을 입력하세요"
+            android:layout_height="?android:actionBarSize"
+            android:paddingStart="15dp"
+            android:background="@drawable/background_edit"
+            android:hint="음악을 검색하세요."
+            android:textColorHint="@android:color/darker_gray"
+            android:layout_marginBottom="10dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@+id/search"
+            android:orientation="horizontal"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:paddingEnd="5dp"
+            android:id="@+id/menu">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:scaleType="centerCrop"
+                android:adjustViewBounds="true"
+                android:src="@drawable/play"
+                android:onClick="@{() -> item.onItemClick(music)}"
+                android:layout_toLeftOf="@+id/menu_sort"
+                android:id="@+id/menu_play"/>
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:id="@+id/menu_sort"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/sort"
+                android:layout_alignParentRight="true"
+                />
+
+        </RelativeLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
@@ -40,10 +77,8 @@
             android:background="@drawable/background_main"
             app:layout_constraintBottom_toTopOf="@+id/transformationLayout"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/search"
-            app:layout_constraintVertical_bias="0.133"
+            app:layout_constraintTop_toBottomOf="@+id/menu"
             tools:listitem="@layout/list_row" />
 
 
