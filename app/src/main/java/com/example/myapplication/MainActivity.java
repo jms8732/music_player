@@ -8,6 +8,8 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -26,9 +28,13 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.KeyEvent;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import com.example.myapplication.databinding.ActivityMainBinding;
@@ -36,6 +42,7 @@ import com.skydoves.transformationlayout.TransformationCompat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class MainActivity extends AppCompatActivity implements clickAdapter, View.OnClickListener, SwipeAdapter {
     private static final String TAG = "jms8732";
@@ -52,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         public void onReceive(Context context, Intent intent) {
             String mode = intent.getStringExtra("mode");
 
-            Log.d(TAG, "[Activity] mode: " + mode);
             switch (mode) {
                 case "start":
                     int pos = intent.getIntExtra("pos", 0);
@@ -157,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         binding.getMusic().setIsplaying(false);
         binding.getMusic().setCurrentDuration(0);
 
-        invalidatePlay();
+        invalidatePause();
     }
 
     @Override
@@ -177,7 +183,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
                     rawRestart();
                 } else {
                     rawStart(next);
-                    if(binding.search.hasFocus())
+                    if (binding.search.hasFocus())
                         editTextClearFocus();
                 }
             }
@@ -187,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             binding.getMusic().setActivate(false);
             rawStart(next);
 
-            if(binding.search.hasFocus())
+            if (binding.search.hasFocus())
                 editTextClearFocus();
         }
     }
@@ -261,8 +267,17 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
 
         int previous = pref.getInt("previous", 0);
 
+        if (mService.getMusic() != null) {
+            previous = IntStream
+                    .range(0, ret.size())
+                    .filter(i -> ret.get(i).getId().equals(mService.getMusic().getId()))
+                    .findAny()
+                    .orElse(0);
+        }
+
         //초기 설정
         binding.setMusic(ret.get(previous));
+
 
         //서비스에 음악 등록
         mService.setMusic(ret.get(previous));
@@ -317,7 +332,23 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             }
         });
 
-        manager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+        manager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        binding.menuForward.setOnClickListener(this);
+        binding.menuRewind.setOnClickListener(this);
+        binding.menuSort.setOnClickListener(this);
+
+        binding.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Toast.makeText(getApplicationContext(), "Refresh...", Toast.LENGTH_SHORT).show();
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putString("delete",null);
+                editor.apply();
+
+                List<Music> newList = loadMusicList();
+                adapter.refreshMusicList(newList,binding.swipeRefreshLayout,binding.recycler);
+            }
+        });
     }
 
     //권한 채크 메소드
@@ -342,6 +373,26 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
         if (v == binding.transformationLayout) {
             Intent intent = new Intent(getApplicationContext(), DetailActivity.class);
             TransformationCompat.startActivity(binding.transformationLayout, intent);
+        } else if (v == binding.menuRewind) {
+            mService.rewind();
+        } else if (v == binding.menuForward) {
+            mService.forward();
+        } else if (v == binding.menuSort) {
+            final PopupMenu menu = new PopupMenu(getApplicationContext(), v);
+            getMenuInflater().inflate(R.menu.menu_context, menu.getMenu());
+            menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    switch (item.getItemId()) {
+                        case R.id.artist:
+                            Toast.makeText(getApplicationContext(), "아티스트", Toast.LENGTH_SHORT).show();
+                            return true;
+                    }
+                    return false;
+                }
+            });
+
+            menu.show();
         }
     }
 
@@ -350,7 +401,6 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
     public void swipeDelete(RecyclerView.ViewHolder viewHolder, int direction) {
         mService.removeMusic(viewHolder, direction, adapter, binding.recycler);
     }
-
 
     @Override
     protected void onDestroy() {
@@ -362,9 +412,10 @@ public class MainActivity extends AppCompatActivity implements clickAdapter, Vie
             stopService(new Intent(this, MusicService.class));
             unbindService(conn);
         }
+
     }
 
-    private void editTextClearFocus(){
+    private void editTextClearFocus() {
         adapter.getFilter().filter("");
         binding.search.setText("");
         manager.hideSoftInputFromWindow(binding.search.getWindowToken(), 0);

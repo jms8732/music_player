@@ -16,7 +16,9 @@ import com.squareup.picasso.Picasso;
 import es.claucookie.miniequalizerlibrary.EqualizerView;
 
 public class Music extends BaseObservable  {
-    private String title, artist, path,id;
+    private String title, artist;
+
+    private String path,id;
     private int totalDuration,currentDuration, index;
     private long album;
     private boolean isplaying, isActivate;

@@ -1,5 +1,10 @@
 package com.example.myapplication;
 
+import android.graphics.Color;
+import android.os.AsyncTask;
+import android.text.BoringLayout;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -11,6 +16,8 @@ import android.widget.Filterable;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.myapplication.databinding.ListRowBinding;
 
@@ -38,14 +45,55 @@ public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.MusicHolder>
         return new MusicHolder(binding);
     }
 
+    public void setOrigin(List<Music> list){
+        this.origin = list;
+    }
+
     public void removeMusic(int pos) {
         origin.remove(pos);
+
+        filtered.clear();
+        filtered.addAll(origin);
         notifyItemRemoved(pos);
     }
 
     public void addMusic(int pos, Music music){
         origin.add(pos,music);
+
+        filtered.clear();
+        filtered.addAll(origin);
         notifyItemInserted(pos);
+    }
+
+    //음악 목록을 새로 고침하는 메소드
+    public void refreshMusicList(final List<Music> newList, final SwipeRefreshLayout swipeRefreshLayout, final RecyclerView recyclerView){
+
+        new AsyncTask<Void, Void, DiffUtil.DiffResult>() {
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+            }
+
+            @Override
+            protected void onPostExecute(DiffUtil.DiffResult result) {
+                origin.clear();
+                origin.addAll(newList);
+
+                filtered.clear();
+                filtered.addAll(origin);
+
+                result.dispatchUpdatesTo(MusicAdapter.this);
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            protected DiffUtil.DiffResult doInBackground(Void... voids) {
+                final MusicDiff diff = new MusicDiff(origin, newList);
+                final DiffUtil.DiffResult result = DiffUtil.calculateDiff(diff);
+                return result;
+            }
+        }.execute();
+
     }
 
     public Music getMusic(int pos){

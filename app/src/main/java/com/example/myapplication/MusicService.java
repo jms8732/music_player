@@ -150,7 +150,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         registerReceivers();
 
         SharedPreferences prefs = getSharedPreferences("music", MODE_PRIVATE);
-        shuffle = prefs.getBoolean("shuffle", true);
+        shuffle = prefs.getBoolean("shuffle", false);
         repeat = prefs.getInt("repeat", 0);
 
         isPrepared = false;
@@ -214,43 +214,42 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     }
 
     //삭제 리스트 추가
-    private void saveDeleteMusic(String id){
-        String deleteList = prefs.getString("delete",null);
+    private void saveDeleteMusic(String id) {
+        String deleteList = prefs.getString("delete", null);
 
         StringBuilder sb = new StringBuilder();
-        if(deleteList == null){
+        if (deleteList == null) {
             sb.append(id);
-        }else{
+        } else {
             sb.append(deleteList + " " + id);
         }
 
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("delete",sb.toString());
+        editor.putString("delete", sb.toString());
         editor.apply();
     }
 
-    private void restoreDeleteMusic(String id){
-        String deleteList = prefs.getString("delete",null);
-        String [] split = deleteList.split(" ");
-        final StringBuilder sb=  new StringBuilder();
-        Arrays.stream(split).filter(s -> !s.equals(id)).forEach(s ->{
+    private void restoreDeleteMusic(String id) {
+        String deleteList = prefs.getString("delete", null);
+        String[] split = deleteList.split(" ");
+        final StringBuilder sb = new StringBuilder();
+        Arrays.stream(split).filter(s -> !s.equals(id)).forEach(s -> {
             sb.append(s).append(" ");
         });
 
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("delete",sb.toString().trim());
+        editor.putString("delete", sb.toString().trim());
         editor.apply();
     }
 
 
-
     //음악 삭제
-    public void removeMusic(final RecyclerView.ViewHolder viewHolder, int direction,final MusicAdapter adapter, final View view){
+    public void removeMusic(final RecyclerView.ViewHolder viewHolder, int direction, final MusicAdapter adapter, final View view) {
         final Music temp = adapter.getMusic(viewHolder.getAdapterPosition());
         final int adapterPosition = viewHolder.getAdapterPosition();
         final int idx = temp.getIndex();
 
-        if(Build.VERSION.SDK_INT >= 25) {
+        if (Build.VERSION.SDK_INT >= 25) {
             final int playListIdx = playList.indexOf(temp); //플레이 리스트의 위치
 
             if (playList.removeIf(m -> m.getIndex() == idx)) {
@@ -258,36 +257,39 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
                 adapter.removeMusic(adapterPosition);
                 saveDeleteMusic(temp.getId());
                 //인덱스를 1 줄인다.
-                playList.stream().filter(m -> m.getIndex() > idx).forEach(m ->{
-                    m.setIndex(m.getIndex()-1);
+                playList.stream().filter(m -> m.getIndex() > idx).forEach(m -> {
+                    m.setIndex(m.getIndex() - 1);
                 });
 
 
-                if(!shuffle) {
+                if (!shuffle) {
                     if (index == idx) {
                         //현재 삭제된 음악이 실행중인 음악이었다면
                         --index;
                         forward();
-                    }
-                }else{
+                    }else if(index > idx)
+                        --index;
+                } else {
                     //랜덤일 경우
-                    if(playListIdx == index){
+                    if (playListIdx == index) {
+                        //현재 삭제된 음악이 실행중인 음악이었다면
                         --index;
                         forward();
                     }
                 }
 
-                Snackbar.make(view,"Music Delete",Snackbar.LENGTH_SHORT).setAction("Undo", v -> {
-                    //삭제를 취소할 경우
-                    adapter.addMusic(adapterPosition,temp);
 
-                    playList.stream().filter(m -> m.getIndex() >= idx).forEach(m ->{
-                        m.setIndex(m.getIndex()+1);
+                Snackbar.make(view, "Music Delete", Snackbar.LENGTH_SHORT).setAction("Undo", v -> {
+                    //삭제를 취소할 경우
+                    adapter.addMusic(adapterPosition, temp);
+
+                    playList.stream().filter(m -> m.getIndex() >= idx).forEach(m -> {
+                        m.setIndex(m.getIndex() + 1);
                     });
 
                     ++index;
                     restoreDeleteMusic(temp.getId());
-                    playList.add(playListIdx,temp);
+                    playList.add(playListIdx, temp);
                 }).show();
 
             }
@@ -295,12 +297,8 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     }
 
     public void setMusicList(List<Music> temp) {
-        if (playList == null)
-            playList = new ArrayList<>(temp);
-        else if (playList.size() != temp.size()) {
-            //새로운 음악이 추가 될 경우
-            createPlayList(music);
-        }
+        playList = new ArrayList<>(temp);
+        createPlayList(music);
     }
 
     public void setMusic(Music m) {
@@ -358,7 +356,8 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
     //다음 곡 재생
     public void forward() {
         Log.d(TAG, "[Service] forward...");
-        if ((repeat == 0 && index + 1 <= playList.size()) || repeat == 1) {
+        Log.d(TAG, "index: " + index);
+        if ((repeat == 0 && index + 1 < playList.size()) || repeat == 1) {
             invalidateCompleteView();
             index = (index + 1) % playList.size();
 
